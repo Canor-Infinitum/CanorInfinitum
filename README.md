@@ -55,7 +55,7 @@ cmake -S . -B build && cmake --build build && ctest --test-dir build
 - `D:\Workspace\Canor_Working-Draft_v1.pdf`: **primary** specification
 - `D:\Workspace\CanorLinguae_Conceptual_Design_Draft_with_panels.pdf`
 - `D:\Workspace\CanorLinguae_Z_Notation_Specification_Draft.pdf`
-- `D:\Workspace\.old\follow_core-verifiable_intelligence\`: legacy C (`fc_*`/`vi_*`), being migrated to `canor_*`. Read-only.
+- Reference design sources in `.old/` are preserved for design-intent verification. Read-only.
 
 ## License
 GNU AGPL v3.0-or-later. TODO: add `LICENSE`.

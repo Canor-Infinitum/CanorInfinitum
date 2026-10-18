@@ -40,7 +40,7 @@ The repository name lists all five: *Canor-Follow-Redko-Avec-Fengshui*.
 - `D:\Workspace\Canor_Working-Draft_v1.pdf`: **primary** (17 pp.)
 - `D:\Workspace\CanorLinguae_Conceptual_Design_Draft_with_panels.pdf` (37 pp.)
 - `D:\Workspace\CanorLinguae_Z_Notation_Specification_Draft.pdf` (26 pp.)
-- `D:\Workspace\.old\`: legacy FollowLang PDFs and `follow_core-verifiable_intelligence` C code (`fc_*`/`vi_*`, being renamed to `canor_*`)
+- `D:\Workspace\.old\`: Reference specifications and prototypes.
 
 ## Status
 Docs scaffolded. No code ported yet.

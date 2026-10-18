@@ -14,7 +14,7 @@
 
 ## Status codes (unified)
 `CANOR_OK 0, CANOR_ERR_ARGS -1, CANOR_ERR_RANGE -2, CANOR_ERR_FULL -3, CANOR_ERR_NOT_CLOSED -4, CANOR_ERR_UNDEFINED -5, CANOR_ERR_NOT_FOUND -6`
-(Replaces `fc_status` and `VI_OK/VI_ERR/VI_NOT_FOUND/VI_FULL`.)
+(Unified error and diagnostics family.)
 
 ## Flow / MetaFlow
 - **AtomUsage** = (atom name, ring index ∈ ℕ). An omitted index means 0.
@@ -30,7 +30,7 @@
 ## Aether IR
 An integer-only binary tree: atoms (an integer value) and cells (ordered left/right). Required storage is a multidimensional integer array. Sparse matrices and HaPPY mapping are future work.
 
-## Type tower (from legacy `fc.h`, now `canor_core.h`)
+## Type tower (`canor_core.h`)
 `BASIS, NUM, NUMBER, INT, TOKEN, VALUE, REFERENCE, FUNCTIONAL, OBSERVABLE, EXPR, OP, OPERATOR, DATA, REAL, INTERVAL, IMAG, IMAGINARY, BASUM, BASE, MODULATION, CALCULUS, TENSORIAL, TENSOR, UNIT, ATOM, CHANGE, FORCE, EXPRESSION, BBST, TST, NODE, LEAF`
 
 ## Capacities (defaults, `#ifndef`-overridable)

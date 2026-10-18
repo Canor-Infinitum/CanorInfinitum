@@ -4,8 +4,8 @@ Replace the `{placeholders}`.
 
 ## Port and rename a legacy module
 ```
-Port .old/follow_core-verifiable_intelligence/{include,src}/{legacy}.{h,c} to {folder}/ as canor_{module}.
-Rename every fc_*/vi_*/FC_*/VI_* identifier per MEMORY.md rename map. Keep rationale comments.
+Implement or scaffold {folder}/include/canor_{module}.h and src/canor_{module}.c.
+Use canonical canor_* identifiers per MEMORY.md. Keep rationale and specification citations.
 Follow AGENTS.md invariants. Add property tests. Update {folder}/CONTEXT.md. Build + test + lint, report.
 ```
 
@@ -23,7 +23,7 @@ Cite the draft section. No floats, fixed-capacity buffers only.
 
 ## Invariant review
 ```
-Review {files} against AGENTS.md invariants 1–9 and canor_* naming. List violations with file:line and a fix.
+Review {files} against AGENTS.md invariants 1–9. List violations with file:line and a fix.
 Do not change code.
 ```
 

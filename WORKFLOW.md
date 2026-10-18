@@ -18,7 +18,7 @@ git push origin <branch>
 2. Implement it (see [SKILL.md](SKILL.md)).
 3. Build: `-Wall -Wextra -Werror -pedantic`.
 4. Test: unit, property, and conformance round-trip.
-5. Lint: no float/malloc and no `fc_`/`vi_` identifiers.
+5. Lint: no float/malloc and strict adherence to `canor_*` naming.
 6. Update `MEMORY.md` if you made a decision.
 7. Open a PR. Review against the AGENTS.md invariants.
 

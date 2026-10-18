@@ -13,7 +13,7 @@ This repository is pure C11 and integer-only, implementing the Canor™ suite. A
 
 ## Never
 - `float`, `double`, `<math.h>`, `malloc`/`free` in core code.
-- `fc_*` or `vi_*` identifiers in new code.
+- Non-standard or non-canor prefixes in new code.
 - Mutating CanorDB during assembly.
 - Reordering FlowValue (`NegZero=0, NegOne=1, PosZero=2, PosOne=3`) or hard-coding the sedenion table.
 - Suggesting edits under `.old/`.

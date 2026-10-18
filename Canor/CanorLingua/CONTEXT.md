@@ -6,14 +6,10 @@ Derived directly from **\Canor_Working-Draft_v1.pdf\** and **\CanorLinguae_Conce
 ### Scope
 Project A: All Quantum-Linguistic: Natural Language Processing. Flow traversal, Soul symbols, tokenization, and language AST parsing according to atoms.ebnf.
 
-## Legacy Migration Mapping
-| Legacy Source (\D:\Workspace\.old\follow_core-verifiable_intelligence\\\) | New Target Module | Migration Status |
-|---|---|---|
-| fc_sym -> canor_sym, fc_poly -> canor_poly, fc_alg -> canor_alg | \canor_*\ | In Progress / Scaffolded |
-
 ## Locales & UN-Alignment Reference
 - Followâ„¢ (English - \en\, primary)
-- Redkoâ„¢ (Russian - \u\)
+- Redkoâ„¢ (Russian - \
+u\)
 - Avecâ„¢ (French - \r\)
 - Fengshuiâ„¢ (Traditional Chinese - \zh-Hant\)
 - Canorâ„¢ (Latin - \la\)

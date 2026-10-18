@@ -9,7 +9,7 @@ Claude Code loads this file automatically. Shared context is imported below. Kee
 ## How to work here
 - **The primary spec is `D:\Workspace\Canor_Working-Draft_v1.pdf`.** Cite its section numbers (Flow §1 … Aether §9).
 - **Plan before editing** anything marked PINNED in `SCHEMA.md`. Propose the change and wait for approval.
-- **Port, then rename.** When migrating from `.old`, keep the rationale comments, but rename every `fc_*`/`vi_*` identifier to `canor_*` using the map in MEMORY.md.
+- **Canonical Naming.** Ensure every header, function, and structure strictly follows the `canor_*` naming standard per MEMORY.md.
 - **Verify by property.** Examples: Flow count stream has n+1 vectors, residues are canonical, quaternion `i*j=k`/`j*i=-k`, octonion non-associativity, sedenion zero divisors, United digest stability.
 - After any change to the C core, run build + tests + the lint grep from AGENTS.md, then report the result.
 

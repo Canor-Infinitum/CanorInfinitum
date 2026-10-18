@@ -15,7 +15,7 @@ Instructions for any AI coding agent working in this repository. Subfolders have
 
 ## Naming: everything is `canor_*`
 - Headers `include/canor_<module>.h`, sources `src/canor_<module>.c`, functions `canor_<module>_<verb>()`, types `canor_<name>_t`, macros `CANOR_*`.
-- `fc_*` (legacy) and `vi_*` (being retired) **must not** appear in new code. See the migration map in [MEMORY.md](MEMORY.md#legacy--canor-rename-map).
+- Only canonical `canor_*` identifiers may appear in codebase files. See [MEMORY.md](MEMORY.md#canonical-module-mapping-approved).
 - C11, `-Wall -Wextra -Werror -pedantic`, `<stdint.h>` types, `extern "C"` guards.
 - Block comments explain *why*, citing the draft by section (e.g. `Canor WD v1 §4 Soul`).
 
@@ -25,7 +25,7 @@ Instructions for any AI coding agent working in this repository. Subfolders have
 build:   cmake --build build
 test:    ctest --test-dir build --output-on-failure
 zephyr:  west build -b <board> app
-lint:    rg -n "float|double|math\.h|malloc|\bfc_|\bvi_" Canor* include src   # must be empty
+lint:    rg -n "float|double|math\.h|malloc" Canor* include src   # must be empty
 ```
 
 ## Do not

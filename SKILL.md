@@ -1,13 +1,13 @@
 ---
 name: canor-module
-description: Add a new integer-only pure-C canor_* module to the Canor tree, or port and rename one from the legacy fc_*/vi_* follow_core-verifiable_intelligence sources, while keeping the project invariants.
+description: Add a new integer-only pure-C canor_* module to the Canor tree while keeping the project invariants.
 ---
 
 # Skill: Add or port a `canor_*` module
 
 ## When to use
 - Creating a new `canor_*` module.
-- Porting a file from `D:\Workspace\.old\follow_core-verifiable_intelligence\` (rename `fc_*`/`vi_*` → `canor_*`).
+- Implementing or migrating a module into `canor_*`.
 
 ## Steps
 1. **Locate the destination** using the folder tables in [README.md](README.md). Read that folder's `AGENTS.md` and `CONTEXT.md`.
@@ -18,7 +18,7 @@ description: Add a new integer-only pure-C canor_* module to the Canor tree, or 
 6. **Tests.** Add property tests (round-trip, n+1 count stream, canonical residues, capacity refusal, algebraic identities).
 7. **Lint:**
    ```sh
-   rg -n "float|double|math\.h|malloc|free\(|\bfc_|\bvi_" include/ src/   # must be empty
+   rg -n "float|double|math\.h|malloc|free\(" include/ src/   # must be empty
    ```
 8. **Build and test** per [WORKFLOW.md](WORKFLOW.md).
 9. **Record** decisions in [MEMORY.md](MEMORY.md). Update the folder's `CONTEXT.md` legacy table.

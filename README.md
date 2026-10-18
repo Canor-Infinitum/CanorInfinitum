@@ -1,7 +1,7 @@
-# Canor-Follow-Redko-Avec-Fengshui
+# Canor Infinitum: Canor™ · Follow™ · Redko™ · Avec™ · Fengshui™
 
 **Canor Infinitum: Quantum Gravity Turing-Computing & Communication Theory (QGTC/QGCT)**
-*Follow™ · Redko™ · Avec™ · Fengshui™ · Canor™* (Working Draft v1.0.0)
+*Canor™ · Follow™ · Redko™ · Avec™ · Fengshui™* (Working Draft v1.0.0)
 
 A pure-C, integer-only implementation of the **CanorLinguae** language suite, its database **CanorDatabasis / CanorDB**, the **CarmenInstinctus** plug-and-play QG/ToE model layer, and their combination in **CanorInstinctivus**. It targets Zephyr RTOS and sandboxed native sessions, uses Assembly as the meta-language, and provides complementary-language bindings (FPC/Lazarus, SWI-Prolog & C, Rust FFI). In-browser output (WASM, WebM, JSON/XML/HTML/CSS/JS) is optional.
 

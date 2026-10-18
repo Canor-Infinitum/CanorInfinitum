@@ -7,12 +7,11 @@ Derived directly from **\Canor_Working-Draft_v1.pdf\** and **\CanorLinguae_Conce
 3. CarmenInstinctus - QG/ToE Plug-and-Play: Using a Discrete Quantum Relativity Theory Extension (Q-RT) with Multiform Unruh-Lorentzian Frames. Diffeomorphic basis, Selmer-Lie brackets, DQG models, and complementary language execution.
 
 ## Locales & UN-Alignment Reference
-- Followâ„¢ (English - \en\, primary)
-- Redkoâ„¢ (Russian - \
-u\)
-- Avecâ„¢ (French - \r\)
-- Fengshuiâ„¢ (Traditional Chinese - \zh-Hant\)
-- Canorâ„¢ (Latin - \la\)
+- Follow™ (English - \en\, primary)
+- Redko™ (Russian - \ru\)
+- Avec™ (French - \fr\)
+- Fengshui™ (Traditional Chinese - \zh-Hant\)
+- Canor™ (Latin - \la\)
 
 ## References & Backlinks
 - [Root Context](../CONTEXT.md)

@@ -21,6 +21,9 @@ Append-only. Format: `YYYY-MM-DD — Decision — Why — Source`.
   7. Elite™ (Branching assembler)
   8. Carmen™ Interlingua (Interoperability with complementary languages)
   9. Aether™ (Intermediate representation & timing-library linker)
+- 2026-10-18 — **5th Trifecta:** Defined as `(x, y, z)` bringing IMAG to 16 basis elements `[one=0, (i,j,k)=1..3, (m,n,o)=4..6, (r,s,t)=7..9, (e,f,g)=10..12, (x,y,z)=13..15]`.
+- 2026-10-18 — **Quaternion Sub-algebras:** Profile configurations allow 4 quaternion sub-algebras (or modular/disjoint Cayley-Dickson products) without rigid global refusal.
+- 2026-10-18 — **Grammar extracted:** `CanorLinguae/grammar/atoms.ebnf` extracted directly from Appendix A of Working Draft v1.
 
 ## Canonical Module Mapping (Approved)
 | Module Name | Target Header / Source | Destination |

@@ -38,7 +38,7 @@ An integer-only binary tree: atoms (an integer value) and cells (ordered left/ri
 |---|---|---|
 | `CANOR_LEVELS_MIN/MAX` | 6 / 96 | Factoradic levels (Lehmer bytes) |
 | `CANOR_NUMBER_DIGITS` | 12 | Rich factoradic digits |
-| `CANOR_IMAG_TRIFECTAS` | 5 | → 16 basis elements (**PINNED**: 4 is refused) |
+| `CANOR_IMAG_TRIFECTAS` | 5 | Default trifectas: 5 (16 basis elements, sedenion closure). Profile-configurable (e.g., 4 quaternion sub-algebras). |
 | `CANOR_BASE_MAX` | 8 | |
 | `CANOR_TENSORIAL_MAX` | 4 | |
 | `CANOR_TENSOR_RANK_MAX` | 4 | |
@@ -49,7 +49,8 @@ An integer-only binary tree: atoms (an integer value) and cells (ordered left/ri
 | `CANOR_ONE` | 1000 | Fixed-point one |
 
 ## IMAG basis — **PINNED**
-`[one=0, (i,j,k)=1..3, (m,n,o)=4..6, (r,s,t)=7..9, (e,f,g)=10..12, (5th trifecta)=13..15]`. TODO: name the 5th trifecta.
+`[one=0, (i,j,k)=1..3, (m,n,o)=4..6, (r,s,t)=7..9, (e,f,g)=10..12, (x,y,z)=13..15]` (5 trifectas = 16 basis elements, sedenions).
+*Sub-algebra Profiles*: Quaternion sub-algebras (e.g. 4 trifectas with modular or disjoint quaternion products) are supported as profile configurations.
 
 ## FlowValue bit encoding — **PINNED**
 | Bits | Value |
@@ -63,7 +64,7 @@ An integer-only binary tree: atoms (an integer value) and cells (ordered left/ri
 1. Hypercomplex hypersurreal numbers. 2. Pure tensors (tensor-network contractions, HaPPY codes). 3. Aether Propositum structures. 4. Symbolicals (expressions and equations). X. Canorum (Canor-specific structures and protocols).
 
 ## Grammar
-`atoms.ebnf`, 60 productions, in draft Appendix A. TODO: copy it to `CanorLinguae/grammar/atoms.ebnf`.
+`atoms.ebnf` (60 productions, Appendix A of Working Draft v1) is located at [CanorLinguae/grammar/atoms.ebnf](CanorLinguae/grammar/atoms.ebnf).
 
 ## Interchange: United™
 A `.fwo` carries distinct JSON and XML artifacts, embedded or referenced by path plus checksum. The canonical digest covers the body, ordered manifest, payloads, and checksums. TODO: digest algorithm (profile-defined).

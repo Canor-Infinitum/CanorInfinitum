@@ -9,7 +9,7 @@ Instructions for any AI coding agent working in this repository. Subfolders have
 4. **Assembly is side-effect-free.** Assembly/Elite never mutates CanorDB or external state. Effects happen only at declared runtime, when the `.fwp` profile and `.fws` contracts authorize them.
 5. **Flow semantics.** Flow values are immutable and ordered. Duplicate atoms count separately. An omitted ring index means 0. An `Order` is a permutation of `Index(n)`. Count streams emit **n + 1** vectors. Residues are canonical (`0 ≤ r < N`).
 6. **No magic numbers.** Name constants and flag them, so the assembler/compiler can track them.
-7. **Spec-pinned encodings are frozen** (see [SCHEMA.md](SCHEMA.md)): FlowValue `NegZero=0, NegOne=1, PosZero=2, PosOne=3`, IMAG = 5 trifectas (16, sedenions), and the MetaFlow labels `R,G,B,A`.
+7. **Spec-pinned encodings are frozen** (see [SCHEMA.md](SCHEMA.md)): FlowValue `NegZero=0, NegOne=1, PosZero=2, PosOne=3`, IMAG = 5 trifectas `(x,y,z)` default (16 sedenions, with profile-configurable quaternion sub-algebras), and MetaFlow labels `R,G,B,A`.
 8. **Reproducibility.** Record profile and settings versions and provenance with every artifact.
 9. **License:** AGPL-3.0-or-later.
 

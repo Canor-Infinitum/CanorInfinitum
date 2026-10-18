@@ -12,8 +12,6 @@
 | IV | **Fengshui™** | Traditional Chinese | `zh-Hant` |
 | V | **Canor™** | Latin | `la` |
 
-The repository name lists all five: *Canor-Follow-Redko-Avec-Fengshui*.
-
 ## Glossary
 | Term | Meaning |
 |---|---|

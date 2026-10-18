@@ -1,0 +1,77 @@
+Canor Infinitum: Quantum Gravity Turing-Computing & Communication Theory (QGTC/QGCT)
+====================================================================================
+Locales (UN-Alignment): Follow (English) - Redko (Russian) - Avec (French) - Fengshui (Chinese) - Canor (Latin)
+
+Project Overview
+----------------
+Canor Infinitum is a deterministic, integer-only, pure-C implementation of the Quantum Gravity
+Turing-Computing & Communication Theory suite. Designed to execute with bit-identical fidelity across
+targets ranging from bare-metal embedded MCUs (Zephyr RTOS on ARM Cortex-M and RISC-V), sandboxed
+native environments (x86_64, AArch64), to complementary language runtimes (FPC/Lazarus, SWI-Prolog,
+Rust FFI) and in-browser WASM.
+
+Architecture & Subdirectories
+-----------------------------
+1. CanorLinguae (QGTC)
+   A Reactive Paradigm, Quantum Symbolic & Physical, Multi-Meta-Programming Language Suite.
+   Implements the 9-language sequence:
+     1. Flow™               - Ordered, immutable atom sequences and trifecta column arithmetic.
+     2. MetaFlow            - Bounded sequence (<= 4 atoms: Reals, Gaps, Bases, Auxiliaries).
+     3. Action™             - Typed modular arithmetic constraints (L == R mod N) with canonical residues.
+     4. Soul™               - Executable symbol binding Flow + Action; emits n+1 count streams.
+     5. Maneuver™           - Binds Soul symbols to symbolic expressions with 1:1, 1:n, n:1 junctions.
+     6. United™             - Interchange language and container (.fwo) carrying JSON and XML artifacts.
+     7. Elite™              - Procedural branching assembler; side-effect-free candidate exploration.
+     8. Carmen™ Interlingua - Interoperability bridge dispatching to complementary runtimes.
+     9. Aether™             - Integer binary-tree intermediate representation and timing linker.
+
+2. CanorDatabasis / CanorDB (QGCT)
+   Held isomorphic to QGTC. A persistent, deterministic repository of Quantum Gravity Contexts
+   and Invariants:
+     - Hypercomplex Hypersurreal Numbers
+     - Pure Tensors, Tensor Network Contractions & Holographic HaPPY-codes
+     - Aether Propositum Structures
+     - Symbolicals (Expressions and Equations)
+     - Canorum (Canor-specific protocols and linkages)
+
+3. CarmenInstinctus (QG/ToE Plug-and-Play)
+   Discrete Quantum Relativity Theory Extension (Q-RT) using multiform Unruh-Lorentzian Frames
+   and Selmer-Lie brackets [u = v] with metric signatures for Diffeomorphic Quantum Gravity (DQG).
+
+4. CanorInstinctivus (Theory & Practice)
+   Synthesis of CanorLinguae, CanorDatabasis, and CarmenInstinctus with Canor theories and practices:
+     - Project A (CanorLingua): Quantum-Linguistic Natural Language Processing.
+     - Project B (CanorRepositorium): Instinctivus Storage, Learning, and Runtime.
+     - Project C (CanorInfinitum): Instinctivus Hardware, Software, and Technology.
+
+Core Implementation Invariants
+------------------------------
+- Pure Integer & Interval Arithmetic: Floating-point types (float, double, <math.h>) are forbidden.
+  Exactness is preserved through integer intervals and fixed-point scaling (CANOR_ONE = 1000).
+- Fixed Capacities & Caller Allocation: No hidden dynamic allocations (malloc/free) in the core.
+  Every container checks compile-time *_MAX limits and returns CANOR_ERR_FULL on exhaustion.
+- Side-Effect-Free Assembly: Elite assembly and symbolic analysis never mutate CanorDB. State
+  transitions occur exclusively during authorized runtime execution under .fwp/.fws contracts.
+- Pinned Encodings:
+    FlowValue: 00 = NegZero, 01 = NegOne, 10 = PosZero, 11 = PosOne
+    IMAG: 5 trifectas = 16 basis elements [one=0, (i,j,k)=1..3, (m,n,o)=4..6, (r,s,t)=7..9, (e,f,g)=10..12, (x,y,z)=13..15].
+          Supports profile-configured quaternion sub-algebras.
+- Diagnostic Discipline: Undefined expressions produce explicit diagnostics rather than silent truncation.
+
+Build System & Toolchains
+-------------------------
+- Desktop/Host Builds: CMake (3.20+) with C11 (-Wall -Wextra -Werror -pedantic)
+- Embedded RTOS: Zephyr SDK + west (supporting ARM Cortex-M/AArch32, RISC-V, and POSIX native boards)
+- Meta-Language: Assembly (NASM/GAS)
+- Complementary Runtimes: Free Pascal (FPC/Lazarus), SWI-Prolog & C, Rust (Cargo/bindgen)
+- Web Target: Emscripten (WASM)
+
+Documentation & Grammar
+-----------------------
+- Comprehensive markdown guides, schemas, rules, and workflows are located in the repository root.
+- The formal 60-production language grammar is provided at: CanorLinguae/grammar/atoms.ebnf
+
+License & Authorship
+--------------------
+Canor Infinitum is licensed under the GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later).
+See LICENSE and COPYING for complete license terms, and AUTHORS for contributor details.

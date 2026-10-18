@@ -5,7 +5,7 @@ Inherits **all** non-negotiable rules from [root AGENTS.md](../AGENTS.md). These
 ## Local Invariants & Rules
 - **Role**: Umbrella for projects: CanorLingua (A), CanorRepositorium (B), and CanorInfinitum (C). Hosts core type tower and shared definitions.
 - **Local Rules**: Owns the canonical C ABI boundaries. Children must interact through well-defined canor_* contracts. No float, no hidden malloc.
-- **Naming**: Strictly \canor_*\. Legacy prefixes (\c_*\, \i_*\) are forbidden in all new/migrated code.
+- **Naming**: Strictly \canor_*\. Legacy prefixes (fc_*, vi_*) are forbidden in all new/migrated code.
 - **Arithmetic**: Pure integer / interval arithmetic. Zero floats or doubles.
 - **Status Codes**: Return unified \canor_status\ with explicit diagnostics for undefined cases.
 

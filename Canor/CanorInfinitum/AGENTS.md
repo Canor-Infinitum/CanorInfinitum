@@ -5,7 +5,7 @@ Inherits **all** non-negotiable rules from [root AGENTS.md](../../AGENTS.md). Th
 ## Local Invariants & Rules
 - **Role**: Project C: All of CanorInstinctivus-Hardware, -Software, and -Technology. Exact unbounded arithmetic, big integers, factoradic/Lehmer, primes, surreals, Golay coding, and Zephyr / bare-metal integration.
 - **Local Rules**: Exactness is absolute. Integer programming with interval arithmetic. Arithmetic overflow must return CANOR_ERR_RANGE, never wrap silently or truncate.
-- **Naming**: Strictly \canor_*\. Legacy prefixes (\c_*\, \i_*\) are forbidden in all new/migrated code.
+- **Naming**: Strictly \canor_*\. Legacy prefixes (\fc_*\, \vi_*\) are forbidden in all new/migrated code.
 - **Arithmetic**: Pure integer / interval arithmetic. Zero floats or doubles.
 - **Status Codes**: Return unified \canor_status\ with explicit diagnostics for undefined cases.
 

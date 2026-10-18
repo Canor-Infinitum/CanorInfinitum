@@ -7,12 +7,11 @@ Derived directly from **\Canor_Working-Draft_v1.pdf\** and **\CanorLinguae_Conce
 4. CanorInstinctivus - Canor-Specific Theory & Practice: Combination of CanorLinguae, CanorDatabasis, and CarmenInstinctus with Canor-Theories and Practices. Strategy engines, excitation, and ORE.
 
 ## Locales & UN-Alignment Reference
-- Followâ„¢ (English - \en\, primary)
-- Redkoâ„¢ (Russian - \
-u\)
-- Avecâ„¢ (French - \r\)
-- Fengshuiâ„¢ (Traditional Chinese - \zh-Hant\)
-- Canorâ„¢ (Latin - \la\)
+- Follow™ (English - \en\, primary)
+- Redko™ (Russian - \ru\)
+- Avec™ (French - \fr\)
+- Fengshui™ (Traditional Chinese - \zh-Hant\)
+- Canor™ (Latin - \la\)
 
 ## References & Backlinks
 - [Root Context](../CONTEXT.md)

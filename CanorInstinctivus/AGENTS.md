@@ -5,7 +5,7 @@ Inherits **all** non-negotiable rules from [root AGENTS.md](../AGENTS.md). These
 ## Local Invariants & Rules
 - **Role**: 4. CanorInstinctivus - Canor-Specific Theory & Practice: Combination of CanorLinguae, CanorDatabasis, and CarmenInstinctus with Canor-Theories and Practices. Strategy engines, excitation, and ORE.
 - **Local Rules**: All operations use integer hypervectors (1024-bit packed words) with similarity scores in [0, CANOR_ONE]. Conformance must actually decode and verify invariance.
-- **Naming**: Strictly \canor_*\. Legacy prefixes (\c_*\, \i_*\) are forbidden in all new/migrated code.
+- **Naming**: Strictly \canor_*\. Legacy prefixes (\fc_*\, \vi_*\) are forbidden in all new/migrated code.
 - **Arithmetic**: Pure integer / interval arithmetic. Zero floats or doubles.
 - **Status Codes**: Return unified \canor_status\ with explicit diagnostics for undefined cases.
 

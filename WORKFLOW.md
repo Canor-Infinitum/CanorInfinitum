@@ -26,8 +26,9 @@ git push origin <branch>
 | Target | Toolchain | Notes |
 |---|---|---|
 | x86_64 Linux / Windows / macOS | GCC, Clang, MSVC | sanitizers on Linux |
-| aarch64 | cross-GCC + QEMU | |
-| riscv32/64 | Zephyr SDK | `west build`, `twister` |
+| aarch64 native | cross-GCC + QEMU | |
+| ARM Cortex-M (Zephyr) | Zephyr SDK (`arm-zephyr-eabi`) | `west build -b qemu_cortex_m3`, `twister` |
+| riscv32/64 (Zephyr) | Zephyr SDK (`riscv64-zephyr-elf`) | `west build -b qemu_riscv32`, `twister` |
 | wasm32 | Emscripten | optional |
 | Carmen bindings | fpc, swipl, cargo | smoke tests |
 | Docs | link checker | every relative link resolves |

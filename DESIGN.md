@@ -37,13 +37,13 @@ flowchart TD
 flowchart TD
   M["Meta-language: Assembly (NASM/GAS)"] --> K["Pure-C core: canor_* (Canor/)"]
   K --> X["Carmen Interlingua bindings: FPC/Lazarus, SWI-Prolog and C, Rust FFI"]
-  K --> T["Targets: Zephyr, sandboxed native (x86_64, aarch64, riscv)"]
+  K --> T["Targets: Zephyr (ARM Cortex-M/AArch32, RISC-V, POSIX), sandboxed native (x86_64, aarch64, riscv)"]
   K --> W["Optional web: WASM, WebM, JSON/XML/HTML/CSS/JS"]
   K --> DB["CanorDB storage"]
 ```
 
 ## Module placement
-See the [rename map](MEMORY.md#legacy--canor-rename-map).
+See the [Canonical Module Mapping](MEMORY.md#canonical-module-mapping-approved).
 
 ## Effect model
 - **Assembly** (Elite, Maneuver checking) is pure. It records declared effects without performing them.

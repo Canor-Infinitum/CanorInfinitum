@@ -4,7 +4,7 @@
 |---|---|---|---|
 | GCC or Clang | C11 core | TODO | `cc --version` |
 | CMake / Ninja | Host build | TODO | `cmake --version` |
-| Zephyr SDK + `west` | RTOS builds | TODO | `west --version` |
+| Zephyr SDK + `west` | RTOS builds (ARM Cortex-M/AArch32 via `arm-zephyr-eabi`, RISC-V via `riscv64-zephyr-elf`, x86) | 1.0.1 / 1.5.0 | `west --version` |
 | NASM / GAS | Assembly meta-language | TODO | `nasm -v` |
 | FPC / Lazarus | Complementary language (Carmen) | TODO | `fpc -iV` |
 | SWI-Prolog | Complementary language (Carmen) | TODO | `swipl --version` |

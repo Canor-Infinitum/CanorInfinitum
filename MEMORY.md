@@ -24,6 +24,8 @@ Append-only. Format: `YYYY-MM-DD — Decision — Why — Source`.
 - 2026-10-18 — **5th Trifecta:** Defined as `(x, y, z)` bringing IMAG to 16 basis elements `[one=0, (i,j,k)=1..3, (m,n,o)=4..6, (r,s,t)=7..9, (e,f,g)=10..12, (x,y,z)=13..15]`.
 - 2026-10-18 — **Quaternion Sub-algebras:** Profile configurations allow 4 quaternion sub-algebras (or modular/disjoint Cayley-Dickson products) without rigid global refusal.
 - 2026-10-18 — **Grammar extracted:** `CanorLinguae/grammar/atoms.ebnf` extracted directly from Appendix A of Working Draft v1.
+- 2026-10-18 — **ARM Architecture Support for Zephyr:** Explicitly added ARM (Cortex-M / AArch32 via `arm-zephyr-eabi`) alongside RISC-V for Zephyr RTOS targets.
+- 2026-10-18 — **ARM architectures for Zephyr allowed & enabled:** ARM Cortex-M (ARMv6-M, ARMv7-M, ARMv8-M: Cortex-M0+/M3/M4/M7/M23/M33/M55) and AArch32/AArch64 are officially supported Zephyr RTOS targets, powered by the installed `arm-zephyr-eabi` SDK toolchain alongside RISC-V and POSIX native boards.
 
 ## Canonical Module Mapping (Approved)
 | Module Name | Target Header / Source | Destination |

@@ -44,7 +44,7 @@ target_compile_options(canor_gen PRIVATE ${CANOR_WARNINGS})
 target_link_libraries(canor_gen PRIVATE canor_core)
 
 enable_testing()
-foreach(t swar timing soul enum)
+foreach(t swar timing soul enum elite)
   add_executable(canor_test_${t} tests/canor_test_${t}.c)
   target_compile_options(canor_test_${t} PRIVATE ${CANOR_WARNINGS})
   target_link_libraries(canor_test_${t} PRIVATE canor_core)

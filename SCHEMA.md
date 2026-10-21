@@ -12,6 +12,24 @@
 | `.fwb` | CanorLinguae source body |
 | `.fwo` | CanorLinguae compiled object (United™ container) |
 
+## INI variables (`.ini`) — **PINNED**
+Each locale has its own `.ini` (e.g. `locales/Canor.ini`, locale `la`). Apart from `[Section]` headers, every line is a `key=value` pair, a comment or blank. A key's class comes from its underscores:
+
+| Form | Class | Use |
+|---|---|---|
+| `__name__` | Global | Internal use only |
+| `_name_` | Scoped | Internal / project use only |
+| `__name` | Limited-usage | Project use only |
+| `_name` | Custom-usage | Any custom use |
+| `name` | Public | Public / general use |
+
+- **Name.** `name` starts with a letter and ends with a letter or digit; inner characters are letters, digits or `_`. The four underscore classes use lowercase ASCII only; Public keys may use upper case.
+- **Classification.** Count the underscores before and after `name`: 2/2 Global, 1/1 Scoped, 2/0 Limited, 1/0 Custom, 0/0 Public. Any other form (`__x_`, `___x`, `_x__`, `x_`) is diagnosed (`CANOR_ERR_ARGS`), never ignored.
+- **Case.** Keys compare case-insensitively, because INI parsers differ. Two keys in one section that differ only in case are diagnosed.
+- **Locales.** Names are never translated. A Global key must have the same value, in the same section, in every locale's `.ini`; a mismatch is diagnosed. The other classes may differ per locale.
+- **Comments.** Whole lines starting with `;`. `#` and comments after a value aren't portable and are not used.
+- The existing keys (`CanonicalSection`, `Locale`, `Scope`, `Projects`, `SupportedByDefault`) are Public keys.
+
 ## Status codes (unified)
 `CANOR_OK 0, CANOR_ERR_ARGS -1, CANOR_ERR_RANGE -2, CANOR_ERR_FULL -3, CANOR_ERR_NOT_CLOSED -4, CANOR_ERR_UNDEFINED -5, CANOR_ERR_NOT_FOUND -6`
 (Unified error and diagnostics family.)

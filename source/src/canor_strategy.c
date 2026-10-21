@@ -272,14 +272,17 @@ void canor_strategy_default(canor_strategy *s, const char *name, uint32_t versio
 
 const char *canor_unit_name(uint8_t unit) { return canor_imag_name(unit); }
 
+/* Every pinned unit letter is admissible, not only the quaternion triple, so a
+ * baseline word can range over all five trifectas. Resolved against
+ * canor_imag_name rather than a second table that could drift out of step. */
 static int unit_of_char(char c) {
-  switch (c) {
-    case '1': return 0;
-    case 'i': case 'I': return 1;
-    case 'j': case 'J': return 2;
-    case 'k': case 'K': return 3;
-    default: return -1;
+  if (c == '1') return 0;
+  if (c >= 'A' && c <= 'Z') c = (char)(c - 'A' + 'a');
+  for (int u = 1; u < CANOR_IMAG_COUNT; ++u) {
+    const char *nm = canor_imag_name((canor_imag)u);
+    if (nm[0] == c && nm[1] == 0) return u;
   }
+  return -1;
 }
 
 bool canor_flows_add(canor_flow_registry *r, const char *name, const char *word) {

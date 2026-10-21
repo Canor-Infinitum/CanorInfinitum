@@ -38,6 +38,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "canor_core.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -112,8 +114,11 @@ typedef struct {
  * before the failure rather than only that one occurred. */
 bool fw_parse(const char *text, fw_doc *doc);
 
-/* Reads a whole file. Caller frees with free(). NULL on failure. */
-char *fw_read_file(const char *path, long *len);
+/* Reads a whole file into caller-placed `buf` of `cap` bytes, NUL-terminated
+ * (AGENTS.md invariant 2: no heap in the core). CANOR_ERR_ARGS on bad input,
+ * CANOR_ERR_NOT_FOUND when the file cannot be opened or read, CANOR_ERR_FULL
+ * when the file plus terminator exceeds `cap` - never a truncated read. */
+canor_status fw_read_file(const char *path, char *buf, size_t cap, size_t *len);
 
 /* --- lookup ----------------------------------------------------------------- */
 

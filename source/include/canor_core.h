@@ -423,7 +423,13 @@ const char *canor_kclass_name(canor_kclass c);
  * =========================================================================== */
 
 /* Basis index 0..CANOR_IMAG_COUNT-1. 0 is `one`; the rest are the trifectas in
- * order. Under the default profile these are the sedenion units e0..e15. */
+ * order. Under the default profile these are the sedenion units e0..e15.
+ *
+ * Names are PINNED (SCHEMA.md "IMAG basis", MEMORY.md 2026-10-20):
+ *   [one=0, (i,j,k)=1..3, (l,m,n)=4..6, (o,p,q)=7..9, (r,s,t)=10..12,
+ *    (e,f,g)=13..15]
+ * The four-trifecta list quoted at the top of this header is the reference
+ * document's; the pinned naming supersedes its letters, not its indices. */
 typedef uint8_t canor_imag;
 
 typedef struct {

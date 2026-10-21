@@ -680,7 +680,6 @@ bool canor_kapprox_separated(uint64_t n) {
 /* --- Cayley-Dickson ------------------------------------------------------- */
 
 static int g_imag_ready = 0;
-static int g_imag_log2 = 0;
 static int8_t g_mul_sign[CANOR_IMAG_COUNT][CANOR_IMAG_COUNT];
 static uint8_t g_mul_index[CANOR_IMAG_COUNT][CANOR_IMAG_COUNT];
 
@@ -730,7 +729,6 @@ canor_status canor_imag_init(void) {
   if (n > 4) return CANOR_ERR_NOT_CLOSED;   /* beyond sedenions the doubling
                                           * continues but the document's
                                           * trifecta framing does not */
-  g_imag_log2 = n;
   for (int i = 0; i < CANOR_IMAG_COUNT; ++i)
     for (int j = 0; j < CANOR_IMAG_COUNT; ++j) {
       int idx, sgn;
@@ -753,11 +751,14 @@ canor_status canor_imag_mul(canor_imag a, canor_imag b, canor_imag *index, int *
 int canor_imag_conj_sign(canor_imag a) { return a == 0 ? 1 : -1; }
 
 const char *canor_imag_name(canor_imag a) {
-  /* The document's own names, extended by the fifth trifecta the dimension
-   * requires. */
+  /* PINNED IMAG basis (SCHEMA.md, MEMORY.md 2026-10-20):
+   *   [one=0, (i,j,k)=1..3, (l,m,n)=4..6, (o,p,q)=7..9, (r,s,t)=10..12,
+   *    (e,f,g)=13..15]
+   * Only the names are pinned here; the product is still Cayley-Dickson
+   * doubling over the indices, so renaming cannot change any table entry. */
   static const char *const n[16] = {
-    "one", "i", "j", "k", "m", "n", "o", "r",
-    "s", "t", "e", "f", "g", "p", "q", "u"
+    "one", "i", "j", "k", "l", "m", "n", "o",
+    "p", "q", "r", "s", "t", "e", "f", "g"
   };
   return a < 16 ? n[a] : "?";
 }

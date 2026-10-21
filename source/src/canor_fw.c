@@ -3,7 +3,6 @@
 #include "canor_fw.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 const char *fw_sigil_name(fw_sigil s) {
@@ -27,22 +26,24 @@ const char *fw_face_name(fw_face f) {
   }
 }
 
-char *fw_read_file(const char *path, long *len) {
-  FILE *f = fopen(path, "rb");
-  char *buf;
+canor_status fw_read_file(const char *path, char *buf, size_t cap, size_t *len) {
+  FILE *f;
   long n;
-  if (!f) return NULL;
+  if (!path || !buf || cap == 0) return CANOR_ERR_ARGS;
+  f = fopen(path, "rb");
+  if (!f) return CANOR_ERR_NOT_FOUND;
   fseek(f, 0, SEEK_END);
   n = ftell(f);
   fseek(f, 0, SEEK_SET);
-  if (n < 0) { fclose(f); return NULL; }
-  buf = (char *)malloc((size_t)n + 1);
-  if (!buf) { fclose(f); return NULL; }
-  if (fread(buf, 1, (size_t)n, f) != (size_t)n) { free(buf); fclose(f); return NULL; }
+  if (n < 0) { fclose(f); return CANOR_ERR_NOT_FOUND; }
+  /* Refuse rather than truncate: a partial source would parse as a different
+   * program (AGENTS.md invariant 3). */
+  if ((size_t)n >= cap) { fclose(f); return CANOR_ERR_FULL; }
+  if (fread(buf, 1, (size_t)n, f) != (size_t)n) { fclose(f); return CANOR_ERR_NOT_FOUND; }
   buf[n] = 0;
   fclose(f);
-  if (len) *len = n;
-  return buf;
+  if (len) *len = (size_t)n;
+  return CANOR_OK;
 }
 
 /* --- scanner ---------------------------------------------------------------- */

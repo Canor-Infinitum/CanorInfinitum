@@ -405,7 +405,7 @@ bool ex_spread_orbit_split(const ex_spread_set *sp, ex_spread_orbits *out) {
             for (j = 0; j < 5; ++j)
               for (k = 0; k < 3; ++k)
                 img[j][k] = (uint8_t)gl_apply(rows, sp->line[i][j][k]);
-            idx = spread_find(sp, img);
+            idx = spread_find(sp, (const uint8_t (*)[3])img);
             if (idx < 0) continue;             /* image is not a spread: impossible */
             if (idx == i) ++stab;
             if (!seen[idx]) { seen[idx] = 1; ++orbit; }

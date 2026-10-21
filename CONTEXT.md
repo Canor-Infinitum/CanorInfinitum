@@ -27,7 +27,8 @@
 | **Soul™ symbol** | Executable token produced from Flow + Action |
 | **United™** | Interchange language and `.fwo` container |
 | **Elite™** | Branching, side-effect-free assembler |
-| **Carmen™ Interlingua** | Main interoperability language to complementary languages |
+| **Carmen™ Interlingua** | Main interoperability language to complementary languages. English locale mark: **Follower™** (Follower Interlingua) |
+| **Follow™** | English locale mark of the whole protocol / project name |
 | **Aether™** | Integer binary-tree IR and timing linker |
 | **Q-RT** | Discrete Quantum Relativity Theory Extension |
 | **DQG** | Diffeomorphic Quantum Gravity |

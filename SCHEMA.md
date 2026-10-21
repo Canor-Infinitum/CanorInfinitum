@@ -23,9 +23,12 @@
 - **Order** = a bijection on `Index(n)`. The default is the identity (L→R). Its reverse is R→L.
 - **Count stream** = n + 1 vectors per trifecta.
 - **MetaFlow** ≤ 4 atoms. Default labels **PINNED**: `R` Reals, `G` Gaps, `B` Bases, `A` Auxiliaries.
+- **Ring index** is categorical: it selects an indexed instance of an atom name and is never folded into arithmetic.
+- **Soul representations** (CanorDB §3.2), Reals = count-stream steps, Bases = IMAG units: Elementary (Real, Base), Unique (Real, Bases), Composite (Reals, Base), Unknown (Reals, Bases). Implemented in `canor_soul.h`.
+- **MetaFlow invocation** = complex-fractal string: R the remaining reals, G the gaps, B the scaling base and imaginary base, A the generating map `z -> z**2 + c`. See MEMORY.md 2026-10-21.
 
 ## Timing fields (Aether §9)
-`canor_field3_t[3][3][3]`, indexed by `PRE/PERI/POST × MIN/NOM/MAX × LOW/VALUE/HIGH`. Components are integers or closed `LO/HI` integer intervals. The flowrate metric is ops/sec. Every field carries `UPDATE_RATE` and `ERROR_RATE`.
+`canor_field3_t[3][3][3]`, indexed by `PRE/PERI/POST × MIN/NOM/MAX × LOW/VALUE/HIGH`. Components are integers or closed `LO/HI` integer intervals. The flowrate metric is ops/sec. Every field carries `UPDATE_RATE` and `ERROR_RATE`. Implemented in `canor_timing.h`: the property type is chosen at compile time (`CANOR_TIMING_INTERVAL` 0 → 27 integers, 1 → 54 interval bounds).
 
 ## Aether IR
 An integer-only binary tree: atoms (an integer value) and cells (ordered left/right). Required storage is a multidimensional integer array. Sparse matrices and HaPPY mapping are future work.
@@ -49,7 +52,7 @@ An integer-only binary tree: atoms (an integer value) and cells (ordered left/ri
 | `CANOR_ONE` | 1000 | Fixed-point one |
 
 ## IMAG basis — **PINNED**
-`[one=0, (i,j,k)=1..3, (m,n,o)=4..6, (r,s,t)=7..9, (e,f,g)=10..12, (x,y,z)=13..15]` (5 trifectas = 16 basis elements, sedenions).
+`[one=0, (i,j,k)=1..3, (l,m,n)=4..6, (o,p,q)=7..9, (r,s,t)=10..12, (e,f,g)=13..15]` (5 trifectas = 16 basis elements, sedenions). Differentials `di … dg` follow the same order (MEMORY.md, 2026-10-20).
 *Sub-algebra Profiles*: Quaternion sub-algebras (e.g. 4 trifectas with modular or disjoint quaternion products) are supported as profile configurations.
 
 ## FlowValue bit encoding — **PINNED**

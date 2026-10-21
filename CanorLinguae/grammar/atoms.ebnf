@@ -1,3 +1,11 @@
+(* atoms.ebnf: canonical Canor atom grammar (Follow locale alias).
+   Source: Working Draft v1, Appendix A, with these changes:
+   - TENSOR_PROPERTY kept as WD v1: symmetric / antisymmetric / unknownsymmetric.
+   - OPERATOR set: + - × * ÷ / \ ** (Conceptual Design set; ** is power).
+   - "^" is script-only; power is "**" (POWER_OPERATOR).
+   - = < > are EQUATION_OPERATOR only; strict < and > allowed.
+   - "_" is not a name start (NAME_START = UNICODE_LETTER).
+   OPEN: "_" still opens ROOT_PATH_MARKER; a path beginning "_" is a root marker. *)
 ATOM_FILE = { ATOM_DEFINITION } ;
 ATOM_DEFINITION = ATOM_PATH, HEADER, "::", TEMPLATE, PARAMETER_GROUP?, ( ":", ATOM_VALUE )?, ";" ;
 ATOM_PATH = ROOT_PATH | TYPED_ATOM, { SELECTOR, TYPED_ATOM } ;
@@ -12,7 +20,7 @@ RIGHT_SUPERSCRIPT = "^", INDEX ;
 INDEX = INDEX_TOKEN | "{", SYMBOLIC_ATOM, "}" ;
 SYMBOL = NAME | SOUL_SYMBOL_REF | FONT_SCRIPT_GLYPH_REF | TEX_COMMAND ;
 NAME = NAME_START, { NAME_CONTINUE } ;
-NAME_START = UNICODE_LETTER | "_" ;
+NAME_START = UNICODE_LETTER ;
 NAME_CONTINUE = UNICODE_LETTER | DIGIT | "_" | "-" ;
 SOUL_SYMBOL_REF = REGISTERED_SOUL_SYMBOL_TOKEN ;
 FONT_SCRIPT_GLYPH_REF = REGISTERED_FONT_GLYPH_TOKEN ;
@@ -54,7 +62,14 @@ HEX_DIGIT = /[0-9A-Fa-f]/ ;
 INDEX_TOKEN = NAME | NUMBER | TEX_COMMAND ;
 REGISTERED_SOUL_SYMBOL_TOKEN = NAME ;
 REGISTERED_FONT_GLYPH_TOKEN = NAME ;
-EQUATION_OPERATOR = "=" | ":=" | "<=" | ">=" ;
-OPERATOR = "+" | "-" | "*" | "/" | "^" | "=" | "<" | ">" ;
+(* Strict < and > are equation operators. TENSOR_BRAKET keeps its own < | > delimiters. *)
+EQUATION_OPERATOR = "=" | ":=" | "<" | "<=" | ">" | ">=" ;
+(* Equality and comparison are EQUATION_OPERATOR only (see below). *)
+OPERATOR = "+" | "-" | "×" | "*" | "÷" | "/" | "\\" | POWER_OPERATOR ;
+POWER_OPERATOR = "**" ;
+(* LEXICAL RULES:
+   1. Longest match: "**" is one POWER_OPERATOR token, never two "*" tokens.
+   2. "^" is a script token only (LEFT_SUPERSCRIPT / RIGHT_SUPERSCRIPT).
+      It is never an operator, so x^2 is a script and x**2 is a power. *)
 ESCAPE_SEQUENCE = "\\", ("\\" | "\"" | "n" | "r" | "t") ;
 STRING_CHARACTER = /[^"\\\r\n]/ ;

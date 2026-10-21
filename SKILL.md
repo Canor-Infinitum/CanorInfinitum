@@ -18,7 +18,7 @@ description: Add a new integer-only pure-C canor_* module to the Canor tree whil
 6. **Tests.** Add property tests (round-trip, n+1 count stream, canonical residues, capacity refusal, algebraic identities).
 7. **Lint:**
    ```sh
-   rg -n "float|double|math\.h|malloc|free\(" include/ src/   # must be empty
+   rg -n "float|double|math\.h|malloc|free\(" source/include source/src   # must be empty (library scope)
    ```
 8. **Build and test** per [WORKFLOW.md](WORKFLOW.md).
 9. **Record** decisions in [MEMORY.md](MEMORY.md). Update the folder's `CONTEXT.md` legacy table.

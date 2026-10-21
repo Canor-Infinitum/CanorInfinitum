@@ -21,11 +21,12 @@ Instructions for any AI coding agent working in this repository. Subfolders have
 
 ## Commands
 ```sh
-# TODO: fill in once the build system exists
+configure: cmake -S source -B build -G Ninja -DCMAKE_C_COMPILER=gcc
 build:   cmake --build build
 test:    ctest --test-dir build --output-on-failure
+fwh/fwb: build/canor_gen --out build/fw          # <out>/<language>/<language>.fwh|.fwb, digests profile-defined
 zephyr:  west build -b <board> app
-lint:    rg -n "float|double|math\.h|malloc" Canor* include src   # must be empty
+lint:    test "$(rg --files source/include source/src | wc -l)" -gt 0 && rg -n "float|double|math\.h|malloc" source/include source/src   # must be empty; scope is the library (examples/ tracked separately)
 ```
 
 ## Do not

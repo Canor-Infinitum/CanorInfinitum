@@ -15,7 +15,7 @@
 | Git + Git Bash | Sync (see WORKFLOW.md) | TODO | `git --version` |
 
 ## Agent tools
-- Invariant/naming lint: `rg -n "float|double|math\.h|malloc" source/include source/src` (guard: fails if zero files match)
+- Invariant/naming lint: `sh source/tools/canor_lint.sh` (ignores comments and strings; exit 0 clean, 1 violations, 2 no files)
 - TODO: `clang-format`, `clang-tidy`, `cppcheck`, sanitizers (`-fsanitize=address,undefined`).
 
 ## Windows notes

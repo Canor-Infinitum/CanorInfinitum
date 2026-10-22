@@ -18,12 +18,12 @@ description: Add a new integer-only pure-C canor_* module to the Canor tree whil
 6. **Tests.** Add property tests (round-trip, n+1 count stream, canonical residues, capacity refusal, algebraic identities).
 7. **Lint:**
    ```sh
-   rg -n "float|double|math\.h|malloc|free\(" source/include source/src   # must be empty (library scope)
+   sh source/tools/canor_lint.sh   # must print "canor_lint: clean" (library scope, comments ignored)
    ```
 8. **Build and test** per [WORKFLOW.md](WORKFLOW.md).
 9. **Record** decisions in [MEMORY.md](MEMORY.md). Update the folder's `CONTEXT.md` legacy table.
 
 ## Done when
 - [ ] Builds with `-Wall -Wextra -Werror -pedantic`
-- [ ] Tests pass and the lint grep is empty
+- [ ] Tests pass and `canor_lint.sh` is clean
 - [ ] Folder `CONTEXT.md` marks the module as ported

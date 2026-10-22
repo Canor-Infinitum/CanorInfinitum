@@ -55,6 +55,7 @@ Append-only. Format: `YYYY-MM-DD — Decision — Why — Source`.
 - 2026-10-21 — **Generator digests are profile-defined (`unset`)**; the United digest is specified in another session. Output layout `<out>/<language>/<language>.fwh|.fwb`. — User decision.
 - 2026-10-21 — **Opt-in PQC profile `pqc-slh-dsa`** described in `CanorLinguae/elite/TRUST.md` (SHA3-512, SLH-DSA-SHAKE-256s, hybrid McEliece + ML-KEM-1024); not a project default; no core change. — User decision (rescoped from the 2026-10-20 trust-model session; the core changes made that day were reverted).
 - 2026-10-21 — **INI variable classes PINNED** (SCHEMA.md "INI variables"): `__name__` Global (internal), `_name_` Scoped (internal/project), `__name` Limited (project), `_name` Custom (any), `name` Public; strict lowercase names for the underscore classes, case-blind compare, untranslated names, Globals equal across locale files, `;` comments. — User decision (approved as shown). — SCHEMA.md.
+- 2026-10-22 — **The repository's Markdown is the spec authority; the PDF drafts are legacy.** CLAUDE.md, CONTEXT.md, README.md, SKILL.md and PROMPTS.md no longer point agents at PDFs outside the repo. §-labels stay as citations. — User direction.
 
 ## Canonical Module Mapping (Approved)
 | Module Name | Target Header / Source | Destination |

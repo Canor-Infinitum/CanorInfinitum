@@ -7,7 +7,7 @@ Claude Code loads this file automatically. Shared context is imported below. Kee
 @AGENTS.md
 
 ## How to work here
-- **The primary spec is `D:\Workspace\Canor_Working-Draft_v1.pdf`.** Cite its section numbers (Flow §1 … Aether §9).
+- **The working spec is this repository's Markdown:** SCHEMA.md (types, encodings, PINNED), AGENTS.md (invariants), MEMORY.md (decisions), CONTEXT.md (glossary). Keep citing the section labels (Flow §1 … Aether §9). The PDF drafts are legacy. Don't look for them outside the repository.
 - **Plan before editing** anything marked PINNED in `SCHEMA.md`. Propose the change and wait for approval.
 - **Canonical Naming.** Ensure every header, function, and structure strictly follows the `canor_*` naming standard per MEMORY.md.
 - **Verify by property.** Examples: Flow count stream has n+1 vectors, residues are canonical, quaternion `i*j=k`/`j*i=-k`, octonion non-associativity, sedenion zero divisors, United digest stability.

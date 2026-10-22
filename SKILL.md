@@ -11,7 +11,7 @@ description: Add a new integer-only pure-C canor_* module to the Canor tree whil
 
 ## Steps
 1. **Locate the destination** using the folder tables in [README.md](README.md). Read that folder's `AGENTS.md` and `CONTEXT.md`.
-2. **Read the spec section** in `Canor_Working-Draft_v1.pdf`. For a port, also read both legacy `.h` and `.c`.
+2. **Read the spec** in [SCHEMA.md](SCHEMA.md) and the related [MEMORY.md](MEMORY.md) decisions. For a port, also read both legacy `.h` and `.c`.
 3. **Rename** using the [rename map](MEMORY.md#legacy--canor-rename-map). That covers file names, functions, types, macros, and status codes.
 4. **Header first.** Create `include/canor_<module>.h` with an include guard, `extern "C"`, `<stdint.h>`/`<stddef.h>`/`<stdbool.h>` only, `#ifndef CANOR_*_MAX` capacities, and a block comment citing the spec and any C substitution.
 5. **Implementation.** Create `src/canor_<module>.c`. Validate arguments, check capacity, and return `canor_status`. Diagnose undefined cases; don't prune them.

@@ -8,7 +8,6 @@
 
 #include "canor_flow.h"
 
-#include <stdlib.h>
 #include <string.h>
 
 /* --- deterministic utility ------------------------------------------------ */
@@ -48,28 +47,24 @@ WORD canor_word_from_cstr(const char *s) {
 
 int canor_rgb_parse(const char *s, RGBString *out) {
     if (!s || !out) return CANOR_ERR;
-    size_t n = strlen(s);
-    RGBPrimitive *p = (RGBPrimitive*)calloc(n ? n : 1, sizeof(RGBPrimitive));
-    if (!p) return CANOR_ERR;
     size_t j = 0;
-    for (size_t i = 0; i < n; ++i) {
-        if (s[i] == 'R' || s[i] == 'r') p[j++] = RGB_Real;
-        else if (s[i] == 'G' || s[i] == 'g') p[j++] = RGB_Gap;
-        else if (s[i] == 'B' || s[i] == 'b') p[j++] = RGB_Base;
-        else if (s[i] == ' ' || s[i] == '\t' || s[i] == '\n') continue;
-        else { free(p); return CANOR_ERR; }
+    for (const char *c = s; *c; ++c) {
+        uint8_t v;
+        if (*c == 'R' || *c == 'r') v = RGB_Real;
+        else if (*c == 'G' || *c == 'g') v = RGB_Gap;
+        else if (*c == 'B' || *c == 'b') v = RGB_Base;
+        else if (*c == ' ' || *c == '\t' || *c == '\n') continue;
+        else return CANOR_ERR;
+        if (j >= CANOR_RGB_MAX) return CANOR_FULL;   /* refused, never truncated */
+        out->primitives[j++] = v;
     }
     out->length = j;
-    out->primitives = p;
     return CANOR_OK;
 }
 
 int canor_rgb_copy(const RGBString *src, RGBString *dst) {
-    if (!src || !dst) return CANOR_ERR;
-    RGBPrimitive *p = (RGBPrimitive*)calloc(src->length ? src->length : 1, sizeof(RGBPrimitive));
-    if (!p) return CANOR_ERR;
-    memcpy(p, src->primitives, src->length * sizeof(RGBPrimitive));
-    dst->primitives = p;
+    if (!src || !dst || src->length > CANOR_RGB_MAX) return CANOR_ERR;
+    memcpy(dst->primitives, src->primitives, src->length);
     dst->length = src->length;
     return CANOR_OK;
 }
@@ -78,14 +73,7 @@ int canor_rgb_equal(const RGBString *a, const RGBString *b) {
     if (!a || !b) return 0;
     if (a->length != b->length) return 0;
     if (a->length == 0) return 1;
-    return memcmp(a->primitives, b->primitives, a->length * sizeof(RGBPrimitive)) == 0;
-}
-
-void canor_rgb_free(RGBString *rgb) {
-    if (!rgb) return;
-    free(rgb->primitives);
-    rgb->primitives = NULL;
-    rgb->length = 0;
+    return memcmp(a->primitives, b->primitives, a->length) == 0;
 }
 
 size_t canor_rgb_dimension(const RGBString *rgb) {
@@ -97,7 +85,7 @@ size_t canor_rgb_dimension(const RGBString *rgb) {
 
 FLOW canor_flow_from_rgb(const RGBString *rgb) {
     FLOW f = { 0 };
-    if (!rgb || (!rgb->primitives && rgb->length)) return f;
+    if (!rgb || rgb->length > CANOR_RGB_MAX) return f;
     /* Hashed a byte at a time rather than through a heap temporary. The
      * skeleton allocated one, and returned an all-zero FLOW when the
      * allocation failed - which silently collapsed every Flow onto one id at
@@ -113,44 +101,29 @@ FLOW canor_flow_from_rgb(const RGBString *rgb) {
 
 /* --- dictionary ----------------------------------------------------------- */
 
-int canor_dictionary_init(Dictionary *dict, size_t capacity) {
-    if (!dict) return CANOR_ERR;
-    if (!capacity) capacity = 1;
-    dict->count = 0;
-    dict->capacity = capacity;
-    dict->words = (WORD*)calloc(capacity, sizeof(WORD));
-    dict->labels = (char**)calloc(capacity, sizeof(char*));
-    if (!dict->words || !dict->labels) {
-        free(dict->words); free(dict->labels);
-        dict->words = NULL; dict->labels = NULL; dict->capacity = 0;
-        return CANOR_ERR;
-    }
+/* Resolves an init capacity: 0 means the compiled maximum. */
+static int capacity_limit(size_t requested, size_t compiled, size_t *out) {
+    if (requested == 0) requested = compiled;
+    if (requested > compiled) return CANOR_FULL;
+    *out = requested;
     return CANOR_OK;
 }
 
-void canor_dictionary_free(Dictionary *dict) {
-    if (!dict) return;
-    for (size_t i = 0; i < dict->count; ++i) free(dict->labels[i]);
-    free(dict->words); free(dict->labels);
-    dict->words = NULL; dict->labels = NULL;
-    dict->count = 0; dict->capacity = 0;
-}
-
-static char *canor_strdup_local(const char *s) {
-    size_t n = strlen(s) + 1;
-    char *r = (char*)malloc(n);
-    if (r) memcpy(r, s, n);
-    return r;
+int canor_dictionary_init(Dictionary *dict, size_t capacity) {
+    if (!dict) return CANOR_ERR;
+    dict->count = 0;
+    dict->capacity = 0;
+    return capacity_limit(capacity, CANOR_DICT_MAX, &dict->capacity);
 }
 
 int canor_dictionary_add(Dictionary *dict, const char *label, WORD *out_word) {
-    if (!dict || !label || !dict->words || !dict->labels) return CANOR_ERR;
+    if (!dict || !label) return CANOR_ERR;
     /* The skeleton had no such check and wrote past the allocation. */
     if (dict->count >= dict->capacity) return CANOR_FULL;
-    char *copy = canor_strdup_local(label);
-    if (!copy) return CANOR_ERR;
+    size_t n = strlen(label);
+    if (n >= CANOR_LABEL_MAX) return CANOR_FULL;   /* a cut label is a different word */
+    memcpy(dict->labels[dict->count], label, n + 1);
     dict->words[dict->count] = canor_word_from_cstr(label);
-    dict->labels[dict->count] = copy;
     if (out_word) *out_word = dict->words[dict->count];
     dict->count++;
     return CANOR_OK;
@@ -167,23 +140,13 @@ const char *canor_dictionary_label(const Dictionary *dict, WORD word) {
 
 int canor_wordflow_init(WordFlowMap *map, size_t capacity) {
     if (!map) return CANOR_ERR;
-    if (!capacity) capacity = 1;
-    map->entries = (WordFlowEntry*)calloc(capacity, sizeof(WordFlowEntry));
-    map->length = 0;
-    map->capacity = capacity;
-    return map->entries ? CANOR_OK : CANOR_ERR;
-}
-
-void canor_wordflow_free(WordFlowMap *map) {
-    if (!map) return;
-    free(map->entries);
-    map->entries = NULL;
     map->length = 0;
     map->capacity = 0;
+    return capacity_limit(capacity, CANOR_WORDFLOW_MAX, &map->capacity);
 }
 
 int canor_wordflow_put(WordFlowMap *map, WORD word, FLOW flow) {
-    if (!map || !map->entries) return CANOR_ERR;
+    if (!map) return CANOR_ERR;
     for (size_t i = 0; i < map->length; ++i)
         if (map->entries[i].word.data == word.data) { map->entries[i].flow = flow; return CANOR_OK; }
     if (map->length >= map->capacity) return CANOR_FULL;
@@ -220,29 +183,13 @@ size_t canor_wordflow_reverse_all(const WordFlowMap *map, FLOW flow,
 
 int canor_flowstore_init(FlowStore *fs, size_t capacity) {
     if (!fs) return CANOR_ERR;
-    if (!capacity) capacity = 1;
-    fs->flows = (FLOW*)calloc(capacity, sizeof(FLOW));
-    fs->content = (RGBString*)calloc(capacity, sizeof(RGBString));
     fs->count = 0;
-    fs->capacity = capacity;
-    if (!fs->flows || !fs->content) {
-        free(fs->flows); free(fs->content);
-        fs->flows = NULL; fs->content = NULL; fs->capacity = 0;
-        return CANOR_ERR;
-    }
-    return CANOR_OK;
-}
-
-void canor_flowstore_free(FlowStore *fs) {
-    if (!fs) return;
-    for (size_t i = 0; i < fs->count; ++i) canor_rgb_free(&fs->content[i]);
-    free(fs->flows); free(fs->content);
-    fs->flows = NULL; fs->content = NULL;
-    fs->count = 0; fs->capacity = 0;
+    fs->capacity = 0;
+    return capacity_limit(capacity, CANOR_FLOWSTORE_MAX, &fs->capacity);
 }
 
 int canor_flowstore_add(FlowStore *fs, const RGBString *rgb, FLOW *out) {
-    if (!fs || !rgb || !fs->flows) return CANOR_ERR;
+    if (!fs || !rgb) return CANOR_ERR;
     FLOW f = canor_flow_from_rgb(rgb);
     for (size_t i = 0; i < fs->count; ++i) {
         if (fs->flows[i].data != f.data) continue;
@@ -298,14 +245,11 @@ int canor_hv_decode_rgb(const HYPERVECTOR *hv, RGBString *out) {
     if (!hv || !out) return CANOR_ERR;
     size_t n = hv->length;
     if (n * 2u > CANOR_HV_BITS) return CANOR_ERR;
-    RGBPrimitive *p = (RGBPrimitive*)calloc(n ? n : 1, sizeof(RGBPrimitive));
-    if (!p) return CANOR_ERR;
     for (size_t i = 0; i < n; ++i) {
         uint8_t v = hv_get2(hv, i);
-        if (v > 2u) { free(p); return CANOR_ERR; }  /* not a symbol we ever wrote */
-        p[i] = (RGBPrimitive)v;
+        if (v > 2u) return CANOR_ERR;   /* not a symbol we ever wrote */
+        out->primitives[i] = v;
     }
-    out->primitives = p;
     out->length = n;
     return CANOR_OK;
 }
@@ -434,7 +378,6 @@ int canor_conformance_word_to_flow_to_hv_to_flow_to_word(
     RGBString back;
     if (canor_hv_decode_rgb(&hv, &back) != CANOR_OK) return CANOR_ERR;
     FLOW f2 = canor_flow_from_rgb(&back);
-    canor_rgb_free(&back);
 
     /* FLOW -> WORD */
     int rc = canor_wordflow_reverse_first(map, f2, output);

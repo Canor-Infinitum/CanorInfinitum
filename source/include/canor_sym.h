@@ -119,17 +119,25 @@ typedef struct {
    * magnitude is what made 1/(t^2+1) read as doubly exponential. */
   int64_t max_bits;
   int64_t ratio_milli;      /* per-step growth of log2|f|, in milli-units */
-  double lo, hi;            /* range AFTER the transform */
+  int64_t lo_milli, hi_milli;  /* range AFTER the transform, in milli-units */
 } canor_series;
 
+/* Most samples one canor_sym_series call takes. */
+#ifndef CANOR_SYM_SAMPLES_MAX
+#define CANOR_SYM_SAMPLES_MAX 4096
+#endif
+
 /* Samples f at t = lo_num/den .. hi_num/den, classifies the growth, and picks
- * the axis. `out_vals` receives the TRANSFORMED values when non-NULL. */
+ * the axis. `out_vals` (caller-placed, nsamples entries) receives the
+ * TRANSFORMED values in milli-units when non-NULL. */
 bool canor_sym_series(const canor_sym *e, int64_t lo_num, int64_t hi_num, int64_t den,
-                   int nsamples, double *out_vals, canor_series *out);
+                   int nsamples, int64_t *out_vals, canor_series *out);
 
 /* The transform itself, exposed so a renderer can label an axis with the same
- * function that produced the values. */
-double canor_axis_apply(canor_axis a, double v);
+ * function that produced the values. Integer only (AGENTS.md invariant 1):
+ * returns milli-units - LINEAR v.1000, SIGNED_LOG sign.log2(1+|v|).1000,
+ * LOGLOG sign.log2(1+log2(1+|v|)).1000. An invalid v maps to 0. */
+int64_t canor_axis_apply(canor_axis a, canor_rational v);
 
 
 /* --- OrigoDelta as an expression --------------------------------------------

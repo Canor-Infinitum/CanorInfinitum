@@ -3,7 +3,6 @@
 #include "canor_poly.h"
 #include "canor_prime.h"
 
-#include <math.h>
 #include <string.h>
 
 void canor_poly_init(canor_poly *p) {
@@ -207,223 +206,274 @@ bool canor_poly_resolvent_cubic(const canor_poly *quartic, canor_poly *out) {
 
 /* --- Pade ------------------------------------------------------------------- */
 
-bool canor_pade_exp(canor_rational x, int m, int n, fb_rat *out, int *squarings) {
+/* Chains canor_big calls: each runs only while every earlier one succeeded. */
+#define POLY_TRY(st, e) do { if ((st) == CANOR_OK) (st) = (e); } while (0)
+
+#define POLY_PADE_ORDER_MAX 8
+#define POLY_SQUARINGS_MAX 40
+
+bool canor_pade_exp(canor_rational x, int m, int n, canor_big_rat_t *out, int *squarings) {
   /* The [m/n] Pade approximant of exp has closed-form coefficients:
    *   P_j = C(m, j) . (m+n-j)! / (m+n)! ,  Q_j = (-1)^j C(n, j) . (m+n-j)! / (m+n)!
    * Both are rational, so the whole approximant is, and evaluating it is exact
    * rational arithmetic with no series truncation inside it. */
-  fb_rat num, den, xp, term, xr, half;
-  int j, sq = 0;
-  bool ok = true;
-  if (!out || !canor_rat_valid(x) || m < 1 || n < 1 || m > 8 || n > 8) return false;
+  canor_big_rat_t num, den, xp, term, xr, half, absx, cf, inv, res;
+  int j, i, sq = 0, top = (m > n ? m : n);
+  canor_status st = CANOR_OK;
+  if (!out || !canor_rat_valid(x) || m < 1 || n < 1 ||
+      m > POLY_PADE_ORDER_MAX || n > POLY_PADE_ORDER_MAX) return false;
 
-  fb_rat_init(&num); fb_rat_init(&den); fb_rat_init(&xp);
-  fb_rat_init(&term); fb_rat_init(&xr); fb_rat_init(&half);
-  ok = fb_rat_set_i64(&xr, x.num, x.den) && fb_rat_set_i64(&half, 1, 2);
+  POLY_TRY(st, canor_big_rat_set_i64(&xr, x.num, x.den));
+  POLY_TRY(st, canor_big_rat_set_i64(&half, 1, 2));
   /* Same range reduction as the Taylor path: Pade is accurate near 0 and the
-   * squarings cost two multiplies each. */
-  while (ok && sq < 40) {
-    fb_rat a;
+   * squarings cost one multiply each. */
+  while (st == CANOR_OK && sq < POLY_SQUARINGS_MAX) {
     int cmp;
-    fb_rat_init(&a);
-    ok = fb_rat_copy(&a, &xr);
-    if (ok && a.num.sign < 0) fb_neg(&a.num);
-    cmp = ok ? fb_rat_cmp(&a, &half) : 0;
-    fb_rat_free(&a);
-    if (!ok || cmp <= 0) break;
-    ok = fb_rat_mul(&xr, &xr, &half);
+    absx = xr;
+    canor_big_abs(&absx.num);
+    cmp = canor_big_rat_cmp(&absx, &half, &st);
+    if (st || cmp <= 0) break;
+    POLY_TRY(st, canor_big_rat_mul(&xr, &xr, &half));
     ++sq;
   }
 
-  if (ok) ok = fb_rat_set_i64(&num, 0, 1) && fb_rat_set_i64(&den, 0, 1) &&
-               fb_rat_set_i64(&xp, 1, 1);
-  for (j = 0; ok && j <= (m > n ? m : n); ++j) {
-    int64_t binm = 1, binn = 1, fk = 1;
-    int i;
+  canor_big_rat_init(&num);
+  canor_big_rat_init(&den);
+  POLY_TRY(st, canor_big_rat_set_i64(&xp, 1, 1));
+  for (j = 0; st == CANOR_OK && j <= top; ++j) {
+    int64_t binm = 1, binn = 1, fall = 1;
     for (i = 0; i < j; ++i) { binm = binm * (m - i) / (i + 1); binn = binn * (n - i) / (i + 1); }
-    for (i = 1; i <= j; ++i) fk *= i;
     /* (m+n-j)!/(m+n)! = 1 / ((m+n)(m+n-1)...(m+n-j+1)) */
-    {
-      int64_t fall = 1;
-      for (i = 0; i < j; ++i) fall *= (m + n - i);
-      if (j <= m) {
-        fb_rat cf;
-        fb_rat_init(&cf);
-        ok = fb_rat_set_i64(&cf, binm, fall) && fb_rat_mul(&term, &xp, &cf) &&
-             fb_rat_add(&num, &num, &term);
-        fb_rat_free(&cf);
-      }
-      if (ok && j <= n) {
-        fb_rat cf;
-        fb_rat_init(&cf);
-        ok = fb_rat_set_i64(&cf, (j & 1) ? -binn : binn, fall) &&
-             fb_rat_mul(&term, &xp, &cf) && fb_rat_add(&den, &den, &term);
-        fb_rat_free(&cf);
-      }
+    for (i = 0; i < j; ++i) fall *= (m + n - i);
+    if (j <= m) {
+      POLY_TRY(st, canor_big_rat_set_i64(&cf, binm, fall));
+      POLY_TRY(st, canor_big_rat_mul(&term, &xp, &cf));
+      POLY_TRY(st, canor_big_rat_add(&num, &num, &term));
     }
-    if (ok && j < (m > n ? m : n)) ok = fb_rat_mul(&xp, &xp, &xr);
-    (void)fk;
+    if (j <= n) {
+      POLY_TRY(st, canor_big_rat_set_i64(&cf, (j & 1) ? -binn : binn, fall));
+      POLY_TRY(st, canor_big_rat_mul(&term, &xp, &cf));
+      POLY_TRY(st, canor_big_rat_add(&den, &den, &term));
+    }
+    if (j < top) POLY_TRY(st, canor_big_rat_mul(&xp, &xp, &xr));
   }
-  if (ok && fb_is_zero(&den.num)) ok = false;      /* a pole; refuse */
-  if (ok) {
-    fb_rat inv;
-    fb_rat_init(&inv);
-    ok = fb_copy(&inv.num, &den.den) && fb_copy(&inv.den, &den.num) &&
-         fb_rat_normalize(&inv) && fb_rat_mul(out, &num, &inv);
-    fb_rat_free(&inv);
-  }
-  { int i; for (i = 0; ok && i < sq; ++i) ok = fb_rat_mul(out, out, out); }
+  POLY_TRY(st, canor_big_rat_inv(&inv, &den));     /* a pole is UNDEFINED: refused */
+  POLY_TRY(st, canor_big_rat_mul(&res, &num, &inv));
+  for (i = 0; i < sq; ++i) POLY_TRY(st, canor_big_rat_mul(&res, &res, &res));
   if (squarings) *squarings = sq;
-  fb_rat_free(&num); fb_rat_free(&den); fb_rat_free(&xp);
-  fb_rat_free(&term); fb_rat_free(&xr); fb_rat_free(&half);
-  return ok;
+  if (st == CANOR_OK) *out = res;
+  return st == CANOR_OK;
+}
+
+/* --- 1/Gamma, integer only ---------------------------------------------------
+ * Gamma at a rational argument is irrational in general, so no exact route
+ * exists; what matters is that the same rational is produced on every host.
+ *
+ * 1/Gamma(z) = sum_{k=1..26} c_k z^k (Abramowitz & Stegun 6.1.34). 1/Gamma is
+ * entire, and on 0 < z <= 1 the 26 tabulated coefficients give it to about
+ * 1e-16 absolute. The coefficients are exact integers over 10^16, so the sum is
+ * exact rational arithmetic over a DECLARED table - no libm, no tgamma, and
+ * bit-identical everywhere (AGENTS.md invariant 1). Any other argument is
+ * carried into (0, 1] exactly by Gamma(z+1) = z.Gamma(z). */
+#define POLY_RGAMMA_TERMS 26
+#define POLY_RGAMMA_SCALE INT64_C(10000000000000000)   /* 10^16 */
+static const int64_t poly_rgamma_c[POLY_RGAMMA_TERMS] = {
+  INT64_C(10000000000000000), INT64_C(5772156649015329), INT64_C(-6558780715202538),
+  INT64_C(-420026350340952),  INT64_C(1665386113822915), INT64_C(-421977345555443),
+  INT64_C(-96219715278770),   INT64_C(72189432466630),   INT64_C(-11651675918591),
+  INT64_C(-2152416741149),    INT64_C(1280502823882),    INT64_C(-201348547807),
+  INT64_C(-12504934821),      INT64_C(11330272320),      INT64_C(-2056338417),
+  INT64_C(61160950),          INT64_C(50020075),         INT64_C(-11812746),
+  INT64_C(1043427),           INT64_C(77823),            INT64_C(-36968),
+  INT64_C(5100),              INT64_C(-206),             INT64_C(-54),
+  INT64_C(14),                INT64_C(1)
+};
+/* Unit steps the recurrence may take before the argument is refused as out
+ * of range: Gamma(a.k + b) for the term counts used here stays far inside. */
+#define POLY_RGAMMA_SHIFT_MAX 512
+/* Significant bits kept in a quantized 1/Gamma. The table is good to ~2^-53,
+ * so 64 bits carries all of its information while keeping the series'
+ * denominators small enough to stay inside CANOR_BIG_LIMBS_MAX. */
+#define POLY_RGAMMA_BITS 64
+
+static canor_status poly_rgamma(const canor_big_rat_t *x, canor_big_rat_t *out) {
+  canor_big_rat_t y, one, up, down, acc, yp, c, t;
+  int steps = 0, k;
+  canor_status st = CANOR_OK;
+
+  y = *x;
+  (void)canor_big_rat_set_i64(&one, 1, 1);   /* cannot fail: d != 0 */
+  up = one;      /* product of factors that multiply 1/Gamma */
+  down = one;    /* product of factors that divide it */
+  /* z > 1:  1/Gamma(z) = 1/Gamma(z-1) / (z-1) */
+  while (st == CANOR_OK && canor_big_rat_cmp_i64(&y, 1, &st) > 0) {
+    if (++steps > POLY_RGAMMA_SHIFT_MAX) return CANOR_ERR_RANGE;
+    POLY_TRY(st, canor_big_rat_sub(&y, &y, &one));
+    POLY_TRY(st, canor_big_rat_mul(&down, &down, &y));
+  }
+  /* z <= 0:  1/Gamma(z) = z / Gamma(z+1). At a non-positive integer a factor
+   * is zero and so is 1/Gamma - its exact value, not a guard. */
+  while (st == CANOR_OK && canor_big_rat_cmp_i64(&y, 0, &st) <= 0) {
+    if (++steps > POLY_RGAMMA_SHIFT_MAX) return CANOR_ERR_RANGE;
+    POLY_TRY(st, canor_big_rat_mul(&up, &up, &y));
+    POLY_TRY(st, canor_big_rat_add(&y, &y, &one));
+  }
+  if (st) return st;
+  /* 0 < y <= 1: the series, Horner-free so each power is formed once. */
+  canor_big_rat_init(&acc);
+  yp = y;
+  for (k = 0; st == CANOR_OK && k < POLY_RGAMMA_TERMS; ++k) {
+    POLY_TRY(st, canor_big_rat_set_i64(&c, poly_rgamma_c[k], POLY_RGAMMA_SCALE));
+    POLY_TRY(st, canor_big_rat_mul(&t, &c, &yp));
+    POLY_TRY(st, canor_big_rat_add(&acc, &acc, &t));
+    if (k + 1 < POLY_RGAMMA_TERMS) POLY_TRY(st, canor_big_rat_mul(&yp, &yp, &y));
+  }
+  POLY_TRY(st, canor_big_rat_mul(&acc, &acc, &up));
+  POLY_TRY(st, canor_big_rat_inv(&down, &down));
+  POLY_TRY(st, canor_big_rat_mul(&acc, &acc, &down));
+  if (st) return st;
+
+  /* Quantize to POLY_RGAMMA_BITS significant bits over a power of two:
+   * num' = trunc(num . 2^s / den), den' = 2^s. Deterministic, and it stops
+   * the exact Pochhammer denominators from compounding through the series. */
+  if (!canor_big_is_zero(&acc.num)) {
+    int s = POLY_RGAMMA_BITS - (canor_big_bits(&acc.num) - canor_big_bits(&acc.den));
+    if (s > 0) {
+      canor_big_t sh;
+      POLY_TRY(st, canor_big_shl(&sh, &acc.num, (unsigned)s));
+      POLY_TRY(st, canor_big_divmod(&acc.num, NULL, &sh, &acc.den));
+      canor_big_set_i64(&sh, 1);
+      POLY_TRY(st, canor_big_shl(&acc.den, &sh, (unsigned)s));
+      POLY_TRY(st, canor_big_rat_normalize(&acc));
+    }
+  }
+  if (st == CANOR_OK) *out = acc;
+  return st;
 }
 
 /* --- Mittag-Leffler ---------------------------------------------------------- */
 
-/* Lanczos-free: Gamma at the rational arguments this needs is approximated by
- * a rational, and the approximation is DECLARED. Gamma(a.k+b) is irrational in
- * general, so no exact route exists; what matters is that the same rational is
- * produced on every host, which it is. */
+#define POLY_ML_TERMS_MIN 4
+#define POLY_ML_TERMS_MAX 80
+#define POLY_ML_WARMUP 4          /* terms before convergence may be declared */
+/* A term below 2^-20 in magnitude, or 46 bits (~1e-14) under the peak term,
+ * cannot move the sum at the precision reported - the same two thresholds the
+ * floating-point version used, now as integer bit counts. */
+#define POLY_ML_ABS_BITS 20
+#define POLY_ML_REL_BITS 46
+#define POLY_MILLI 1000
+
+/* log2 |v| to within one bit: bits(num) - bits(den). */
+static int rat_mag_bits(const canor_big_rat_t *v) {
+  return canor_big_bits(&v->num) - canor_big_bits(&v->den);
+}
 
 bool canor_mittag_leffler(canor_rational alpha, canor_rational beta, canor_rational z,
-                       int terms, fb_rat *out, canor_ml_report *rep) {
-  fb_rat acc, zp, term, invg, zr;
-  double a, b, term_peak = 0.0;
-  int k, converged = 0;
-  bool ok = true, integer_args;
+                       int terms, canor_big_rat_t *out, canor_ml_report *rep) {
+  canor_big_rat_t acc, zp, term, invg, zr, ar, br, arg, d;
+  int k, converged = 0, have_peak = 0, peak_bits = 0;
+  canor_status st = CANOR_OK;
+  bool integer_args;
 
   if (!out || !canor_rat_valid(alpha) || !canor_rat_valid(beta) || !canor_rat_valid(z))
     return false;
-  if (terms < 4) terms = 4;
-  if (terms > 80) terms = 80;
-  a = (double)alpha.num / (double)alpha.den;
-  b = (double)beta.num / (double)beta.den;
+  if (terms < POLY_ML_TERMS_MIN) terms = POLY_ML_TERMS_MIN;
+  if (terms > POLY_ML_TERMS_MAX) terms = POLY_ML_TERMS_MAX;
 
-  /* THE COEFFICIENT MUST BE A BIGNUM, AND CARRIED INCREMENTALLY.
-   *
-   * The previous version obtained 1/Gamma through an canor_rational, which is a
-   * pair of int64. 1/Gamma(21) is about 4e-19, and the largest denominator an
-   * int64 rational can carry with a non-zero numerator ran out before that: the
-   * numerator truncated to ZERO from k = 20 onward, so the series silently
-   * stopped there. At z = -8 that left the k = 19 partial sum, -0.341589 -
-   * exactly the wrong answer that was showing.
-   *
-   * It was never a convergence problem, and the "range of validity" fence
-   * built around it was fencing the wrong thing. The fix is to keep the
-   * coefficient in fb_rat, where 1/k! is exact at every k, and to build it by
-   * DIVIDING THE PREVIOUS ONE - which needs no factorial to be formed at all.
-   */
+  /* At alpha = beta = 1 the coefficient 1/k! is exact and is carried
+   * incrementally - 1/(k+1)! = (1/k!) / (k+1) - so no factorial is formed.
+   * Otherwise each 1/Gamma(a.k + b) comes from the declared integer series. */
   integer_args = (alpha.num == alpha.den && beta.num == beta.den);
 
-  fb_rat_init(&acc); fb_rat_init(&zp); fb_rat_init(&term);
-  fb_rat_init(&invg); fb_rat_init(&zr);
-  ok = fb_rat_set_i64(&acc, 0, 1) && fb_rat_set_i64(&zp, 1, 1) &&
-       fb_rat_set_i64(&invg, 1, 1) && fb_rat_set_i64(&zr, z.num, z.den);
+  canor_big_rat_init(&acc);
+  POLY_TRY(st, canor_big_rat_set_i64(&zp, 1, 1));
+  POLY_TRY(st, canor_big_rat_set_i64(&invg, 1, 1));
+  POLY_TRY(st, canor_big_rat_set_i64(&zr, z.num, z.den));
+  POLY_TRY(st, canor_big_rat_set_i64(&ar, alpha.num, alpha.den));
+  POLY_TRY(st, canor_big_rat_set_i64(&br, beta.num, beta.den));
 
-  /* HOW MANY TERMS, MEASURED RATHER THAN GUESSED.
-   *
-   * The coefficient construction was instrumented against tgamma and tracks it
-   * to about 1e-9 at every k - it was never the problem. What was happening is
-   * simpler: at alpha = 1/2 the denominator Gamma(k/2 + 1) grows only half as
-   * fast as k!, so the terms decay far more slowly than the exponential case
-   * and forty of them are nowhere near enough. At z = -2.83 the partial sums
-   * were still swinging between -1.5 and +1.3 at k = 39 against a true value
-   * of 0.1888. The -0.103 that looked like a bug was just the k = 39 partial.
-   *
-   * So the loop now stops when it has passed the peak AND the term has fallen
-   * far below it, rather than at a fixed count. The peak is tracked because an
-   * alternating series with terms rising to 200 before decaying cannot be
-   * judged by the size of the current term alone. */
-  {
-    double peak = 0.0, cur = 0.0;
-    int past_peak = 0;
-    (void)peak; (void)cur; (void)past_peak;
-  }
-  for (k = 0; ok && k < terms; ++k) {
+  /* HOW MANY TERMS, MEASURED RATHER THAN GUESSED. At alpha = 1/2 the
+   * denominator grows half as fast as k!, so the terms rise to a peak before
+   * decaying; the loop stops once it is past the peak AND the term is
+   * negligible against it, not at a fixed count. */
+  for (k = 0; st == CANOR_OK && k < terms; ++k) {
     if (!integer_args) {
-      /* Fractional alpha: Gamma is genuinely irrational, so a rational
-       * approximation is unavoidable. The scale is chosen from the VALUE's
-       * magnitude rather than fixed, which is what the old code got wrong -
-       * a fixed 1e15 cap silently zeroed every small coefficient. */
-      double g = tgamma(a * (double)k + b);
-      double iv = (g > 0.0 && g < 1e300) ? 1.0 / g : 0.0;
-      /* den is 1, not a fixed scale: the loop below already scales iv UP by
-       * 10^shift, so the only division needed is by that same 10^shift.
-       * Dividing by a fixed denominator as well made every fractional
-       * coefficient 1e9 too small, and the whole column read as zero. */
-      int64_t num, den = 1;
-      int shift = 0;
-      while (iv != 0.0 && iv < 1e8 && shift < 30) { iv *= 10.0; ++shift; }
-      num = (int64_t)iv;
-      ok = fb_rat_set_i64(&invg, num, den);
-      { int i2; for (i2 = 0; ok && i2 < shift; ++i2) {
-          fb_rat ten; fb_rat_init(&ten);
-          ok = fb_rat_set_i64(&ten, 1, 10) && fb_rat_mul(&invg, &invg, &ten);
-          fb_rat_free(&ten); } }
-      if (!ok) break;
+      POLY_TRY(st, canor_big_rat_set_i64(&d, k, 1));
+      POLY_TRY(st, canor_big_rat_mul(&arg, &ar, &d));
+      POLY_TRY(st, canor_big_rat_add(&arg, &arg, &br));
+      POLY_TRY(st, poly_rgamma(&arg, &invg));
     }
-    ok = fb_rat_mul(&term, &zp, &invg) && fb_rat_add(&acc, &acc, &term);
-    if (!ok) break;
+    POLY_TRY(st, canor_big_rat_mul(&term, &zp, &invg));
+    POLY_TRY(st, canor_big_rat_add(&acc, &acc, &term));
+    if (st) break;
     {
-      int64_t fx = 0;
-      double mag = 0.0;
-      if (fb_rat_to_fixed(&term.num, &term.den, 20, &fx))
-        mag = fabs((double)fx / (double)(1 << 20));
-      if (mag > term_peak) { term_peak = mag; }
-      else if (k > 4 && term_peak > 0.0 && mag < term_peak * 1e-14) {
-        /* Past the peak and negligible against it: further terms cannot move
-         * the sum, so stopping here is convergence rather than truncation. */
+      int mag = rat_mag_bits(&term);
+      bool negligible = canor_big_is_zero(&term.num) || mag < -POLY_ML_ABS_BITS;
+      if (!negligible && (!have_peak || mag > peak_bits)) { peak_bits = mag; have_peak = 1; }
+      else if (k > POLY_ML_WARMUP && have_peak &&
+               (negligible || peak_bits - mag > POLY_ML_REL_BITS)) {
         converged = 1;
         ++k;
         break;
       }
     }
-    ok = fb_rat_mul(&zp, &zp, &zr);
-    if (integer_args && ok) {
-      /* 1/(k+1)! = (1/k!) / (k+1). Exact, for every k, with no factorial. */
-      fb_rat d;
-      fb_rat_init(&d);
-      ok = fb_rat_set_i64(&d, 1, (int64_t)k + 1) && fb_rat_mul(&invg, &invg, &d);
-      fb_rat_free(&d);
+    POLY_TRY(st, canor_big_rat_mul(&zp, &zp, &zr));
+    if (integer_args) {
+      POLY_TRY(st, canor_big_rat_set_i64(&d, 1, (int64_t)k + 1));
+      POLY_TRY(st, canor_big_rat_mul(&invg, &invg, &d));
     }
   }
-  /* RANGE, and only for the fractional case. At alpha = 1 every coefficient
-   * is exact, the alternating cancellation costs nothing, and the result is
-   * right at every |z| tested - so no guard belongs there.
-   *
-   * At fractional alpha the coefficients are approximations of 1/Gamma, and
-   * the series alternates with terms peaking near e^|z| before settling near
-   * e^-|z|. Each approximate coefficient contributes an absolute error scaled
-   * by its term, so the accumulated error grows with the PEAK while the answer
-   * shrinks. That is a real limit of this method - large |z| wants the
-   * asymptotic expansion or an integral representation, neither implemented -
-   * and it is refused rather than reported. */
-  /* Running out of terms without converging is REFUSED. The partial sum of a
-   * series still swinging by units is not an answer, and returning it is
-   * exactly the failure that made the fractional column look broken. */
-  if (ok && !converged && k >= terms) ok = false;
-  if (ok) ok = fb_rat_copy(out, &acc);
+  /* Running out of terms without converging is REFUSED: the partial sum of a
+   * series still swinging by units is not an answer. Capacity exhaustion is
+   * refused the same way. */
   if (rep) {
-    rep->ok = ok;
+    rep->ok = (st == CANOR_OK && converged);
     rep->terms = k;
     rep->deterministic = true;
-    rep->bound_log2_milli = -1000LL * k;
+    rep->bound_log2_milli = -(int64_t)POLY_MILLI * k;
   }
-  fb_rat_free(&acc); fb_rat_free(&zp); fb_rat_free(&term);
-  fb_rat_free(&invg); fb_rat_free(&zr);
-  return ok;
+  if (st != CANOR_OK || !converged) return false;
+  *out = acc;
+  return true;
 }
 
+/* t^alpha needs a root; it is taken exactly as an integer q-th root, so the
+ * argument is floor(t^alpha . 10^6) on every host. */
+#define POLY_RELAX_SCALE_DIGITS 6
+#define POLY_RELAX_SCALE INT64_C(1000000)
+#define POLY_ROOT_DEGREE_MAX 64
+#define POLY_DEC_BASE 10
+
 bool canor_fractional_relax(canor_rational alpha, canor_rational lambda, canor_rational t,
-                         int terms, fb_rat *out, canor_ml_report *rep) {
-  /* E(alpha, 1; -lambda . t^alpha). t^alpha is not rational for fractional
-   * alpha, so it is formed as a declared rational approximation - the same
-   * bargain as Gamma above, and stated in the same way. */
-  double ta = pow((double)t.num / (double)t.den,
-                  (double)alpha.num / (double)alpha.den);
-  canor_rational arg = canor_rat((int64_t)(-ta * 1000000.0 * (double)lambda.num
-                                     / (double)lambda.den), 1000000);
+                         int terms, canor_big_rat_t *out, canor_ml_report *rep) {
+  /* E(alpha, 1; -lambda . t^alpha). For fractional alpha = p/q, t^alpha is
+   * irrational in general and is formed as the DECLARED approximation
+   *     floor( (t.num^p . 10^(6q) / t.den^p)^(1/q) ) / 10^6,
+   * computed exactly by integer root extraction - the same bargain as Gamma
+   * above, stated the same way, and integer only. */
+  canor_big_t a, b, ten, scale, x, r;
+  int64_t ta, argnum;
+  canor_status st = CANOR_OK;
+  canor_rational arg;
+  if (!canor_rat_valid(alpha) || !canor_rat_valid(lambda) || !canor_rat_valid(t)) return false;
+  if (alpha.num < 0 || t.num < 0 || alpha.den > POLY_ROOT_DEGREE_MAX) return false;
+
+  canor_big_set_i64(&a, t.num);
+  canor_big_set_i64(&b, t.den);
+  canor_big_set_i64(&ten, POLY_DEC_BASE);
+  POLY_TRY(st, canor_big_pow_u32(&a, &a, (uint32_t)alpha.num));
+  POLY_TRY(st, canor_big_pow_u32(&b, &b, (uint32_t)alpha.num));
+  POLY_TRY(st, canor_big_pow_u32(&scale, &ten, (uint32_t)(POLY_RELAX_SCALE_DIGITS * alpha.den)));
+  POLY_TRY(st, canor_big_mul(&x, &a, &scale));
+  POLY_TRY(st, canor_big_divmod(&x, NULL, &x, &b));
+  POLY_TRY(st, canor_big_iroot(&r, &x, (uint32_t)alpha.den));
+  POLY_TRY(st, canor_big_mul_i64(&r, &r, lambda.num));
+  canor_big_set_i64(&b, lambda.den);
+  POLY_TRY(st, canor_big_divmod(&r, NULL, &r, &b));   /* toward zero */
+  POLY_TRY(st, canor_big_to_i64(&r, &ta));
+  if (st != CANOR_OK || ta == INT64_MIN) return false;
+  argnum = -ta;
+  arg = canor_rat(argnum, POLY_RELAX_SCALE);
   if (!canor_rat_valid(arg)) return false;
   return canor_mittag_leffler(alpha, canor_rat(1, 1), arg, terms, out, rep);
 }

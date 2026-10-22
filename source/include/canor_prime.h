@@ -34,11 +34,17 @@
 extern "C" {
 #endif
 
+/* The sieve lives in static fixed tables sized by CANOR_PRIME_LIMIT (AGENTS.md
+ * invariant 2: no heap). At the default that is 4 MB of smallest-factor table
+ * plus the prime list; an embedded profile overrides it downward. */
 #ifndef CANOR_PRIME_LIMIT
 #define CANOR_PRIME_LIMIT 1000000
 #endif
+/* pi(n) <= n/2 + 1 for every n, so this bound never refuses a real prime. */
+#define CANOR_PRIME_COUNT_MAX (CANOR_PRIME_LIMIT / 2 + 16)
 
-/* Builds the sieve to `limit` (clamped to CANOR_PRIME_LIMIT). Idempotent. */
+/* Builds the sieve to `limit`. Idempotent. A limit beyond CANOR_PRIME_LIMIT is
+ * refused (false) rather than silently clamped. */
 bool canor_prime_init(int32_t limit);
 int32_t canor_prime_count(void);
 int32_t canor_prime_at(int32_t i);          /* i-th prime, 0-based; 0 if out of range */
@@ -88,8 +94,8 @@ int64_t canor_factorial_valuation(int32_t n, int32_t p);
  *
  * exp(Theta + Phi.i) is transcendental. It cannot be evaluated in the exact
  * rationals this core is built on, and section 27 forbids putting floating
- * point in the deterministic path. So L_m's VALUE is a report-layer quantity,
- * computed in double, and it is marked as such.
+ * point in the deterministic path. So L_m's VALUE is a declared approximation:
+ * a truncated rational series, reproducible bit for bit, and marked as such.
  *
  * What IS exact, and what turns out to matter more, is the RATIO
  * (Order_m - X)/n! - because its limit separates the four MetaFlow classes
@@ -104,7 +110,7 @@ int64_t canor_factorial_valuation(int32_t n, int32_t p);
  * observation about it: the four classes have four different limit behaviours,
  * and the classification needs no exponential at all. Callers that want to
  * separate MetaFlows should read the class; callers that want a number should
- * read the value and accept that it is floating point. */
+ * read the value and accept that it is a bounded approximation. */
 
 /* --- deterministic transcendentals -----------------------------------------
  * THE DISTINCTION THAT MATTERS. Section 27 forbids floating-point
@@ -133,10 +139,10 @@ typedef struct {
 
 /* exp(x) for exact rational x, to `terms` Taylor terms after range reduction.
  * Writes a bignum rational, so no precision is lost in the accumulation. */
-bool canor_exp_rat(canor_rational x, int terms, fb_rat *out, canor_exp_report *rep);
+bool canor_exp_rat(canor_rational x, int terms, canor_big_rat_t *out, canor_exp_report *rep);
 /* cos and sin of an exact rational, same construction. */
-bool canor_cos_rat(canor_rational x, int terms, fb_rat *out, canor_exp_report *rep);
-bool canor_sin_rat(canor_rational x, int terms, fb_rat *out, canor_exp_report *rep);
+bool canor_cos_rat(canor_rational x, int terms, canor_big_rat_t *out, canor_exp_report *rep);
+bool canor_sin_rat(canor_rational x, int terms, canor_big_rat_t *out, canor_exp_report *rep);
 
 typedef enum {
   CANOR_RESID_UNIT = 0,      /* ratio -> 0, L -> 1 */
@@ -161,18 +167,20 @@ typedef struct {
   bool exact;
   bool deterministic;
   int64_t bound_log2_milli;
-  double value_re, value_im;   /* convenience rendering of the rationals below */
-  fb_rat exact_re, exact_im;   /* the reproducible values themselves */
+  /* Convenience rendering of the rationals below as Q20 fixed point
+   * (value * 2^20, truncated) - integer, so it is reproducible too. */
+  int64_t value_re_q20, value_im_q20;
+  canor_big_rat_t exact_re, exact_im;   /* the reproducible values themselves */
 } canor_residual;
 
-/* Frees the bignum members. */
-void canor_residual_free(canor_residual *r);
+#define CANOR_RESIDUAL_Q 20               /* fractional bits of value_*_q20 */
 
 /* m is an canor_kclass. `x_milli` is log2 of the X term, in milli-units, so a
  * caller can pass a Flow/MetaFlow/MultiFlow magnitude without ever forming it.
- * theta and phi are report-layer only and do not affect cls or the ratio. */
+ * theta and phi are exact rationals (integer only, AGENTS.md invariant 1);
+ * they do not affect cls or the ratio. */
 bool canor_residual_L(canor_kclass m, uint64_t n, int64_t x_milli,
-                   double theta, double phi, canor_residual *out);
+                   canor_rational theta, canor_rational phi, canor_residual *out);
 
 #ifdef __cplusplus
 }

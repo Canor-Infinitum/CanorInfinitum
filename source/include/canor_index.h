@@ -7,10 +7,15 @@
  *
  * NOT PART OF THE SBC CORE, and not synced to the Prolog or Rust layers. The
  * core's Dictionary, WordFlowMap and FlowStore are linear-scan structures with
- * no hashing and no allocation beyond their arrays, which is the right shape
- * for WHITEPAPER section 19's embedded target. Everything here allocates and
- * hashes. Keeping it in a separate module means the substrate stays inspectable
- * and this stays optional.
+ * no hashing, which is the right shape for WHITEPAPER section 19's embedded
+ * target. Everything here hashes. Keeping it in a separate module means the
+ * substrate stays inspectable and this stays optional.
+ *
+ * FIXED CAPACITY (AGENTS.md invariant 2). canor_tree and canor_ann are plain
+ * structs the caller places (static, stack or its own arena); the module
+ * allocates nothing. Building past a CANOR_TREE_* / CANOR_ANN_* capacity is
+ * refused with CANOR_ERR_FULL. The defaults suit an embedded profile; the full
+ * 370,100-word dictionary needs them raised at build time.
  *
  * WHAT IT IS FOR
  * --------------
@@ -80,12 +85,31 @@ extern "C" {
  * SemanticTree - VERIFIABLEINTELLIGENCE section 8
  * =========================================================================== */
 
-typedef struct canor_tree canor_tree;
+#ifndef CANOR_TREE_WORDS_MAX
+#define CANOR_TREE_WORDS_MAX 4096
+#endif
+/* Open-addressing slots: a power of two at least twice the word capacity, so
+ * the load factor stays <= 1/2. */
+#ifndef CANOR_TREE_SLOTS_MAX
+#define CANOR_TREE_SLOTS_MAX (2 * CANOR_TREE_WORDS_MAX)
+#endif
+#define CANOR_TREE_DEPTH_MAX 64        /* ancestor walk cap */
+#define CANOR_TREE_WORD_LEN_MAX 256    /* Gap boundary bitmap width */
+
+typedef struct {
+  const char *const *words;     /* borrowed, see below */
+  uint32_t n;
+  int32_t parent[CANOR_TREE_WORDS_MAX];   /* -1 for a root */
+  uint32_t depth[CANOR_TREE_WORDS_MAX];
+  int32_t slot[CANOR_TREE_SLOTS_MAX];     /* open-addressed word -> index */
+  uint32_t mask;                          /* slot count in use - 1 */
+  uint32_t roots;
+} canor_tree;
 
 /* Words are borrowed, not copied: the caller owns the strings and must outlive
- * the tree. A dictionary of this size copied twice is 22 MB for nothing. */
-canor_tree *canor_tree_build(const char *const *words, uint32_t n);
-void canor_tree_free(canor_tree *t);
+ * the tree. CANOR_ERR_ARGS for no words, CANOR_ERR_FULL for more than
+ * CANOR_TREE_WORDS_MAX. */
+canor_status canor_tree_build(canor_tree *t, const char *const *words, uint32_t n);
 
 /* The parent of a word is the longest PROPER prefix of it that is also a word.
  * Returns -1 for a root word. */
@@ -108,17 +132,32 @@ size_t canor_tree_gapped_rgb(const canor_tree *t, uint32_t word, char *out, size
  * ANN index - LSH over 1-bit signatures, Strategy-seeded
  * =========================================================================== */
 
-typedef struct canor_ann canor_ann;
+#ifndef CANOR_ANN_TABLES_MAX
+#define CANOR_ANN_TABLES_MAX 8
+#endif
+#ifndef CANOR_ANN_BITS_MAX
+#define CANOR_ANN_BITS_MAX 12          /* buckets per table: 2^bits */
+#endif
+#ifndef CANOR_ANN_N_MAX
+#define CANOR_ANN_N_MAX 4096           /* signatures indexed */
+#endif
+
+typedef struct {
+  uint32_t tables, bits, n;
+  uint16_t pos[CANOR_ANN_TABLES_MAX * CANOR_ANN_BITS_MAX];        /* sampled bits */
+  int32_t head[CANOR_ANN_TABLES_MAX << CANOR_ANN_BITS_MAX];       /* -1 empty */
+  int32_t next[CANOR_ANN_TABLES_MAX * CANOR_ANN_N_MAX];           /* chain links */
+} canor_ann;
 
 /* tables: independent hash tables (more tables, better recall, more memory).
  * bits: bit positions sampled per table; the bucket count is 2^bits.
  *
  * Both bit selection and probe order derive from `s`, so the index is a pure
  * function of (Strategy, contents). Two builds with the same Strategy are
- * byte-identical structures. */
-canor_ann *canor_ann_build(const HYPERVECTOR *sigs, uint32_t n,
-                     const STRATEGY *s, uint32_t tables, uint32_t bits);
-void canor_ann_free(canor_ann *a);
+ * byte-identical structures. CANOR_ERR_ARGS for zero sizes, CANOR_ERR_FULL
+ * when tables, bits or n exceed CANOR_ANN_TABLES_MAX / _BITS_MAX / _N_MAX. */
+canor_status canor_ann_build(canor_ann *a, const HYPERVECTOR *sigs, uint32_t n,
+                             const STRATEGY *s, uint32_t tables, uint32_t bits);
 
 /* Top-k by exact Hamming distance over the candidates the tables surface.
  * Writes indices and their similarity in [0, CANOR_ONE], best first, and returns

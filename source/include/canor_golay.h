@@ -39,7 +39,7 @@
  *   difference is a codeword, hence distance 0 or >= 8 - never in between.
  *
  *   TELEMETRY. Phase classifications quantised into a 23-bit window, snapped,
- *   and compared. See canor_temporal below.
+ *   and compared. See the telemetry section below.
  *
  * WHAT IT IS NOT USED FOR: see the note on McEliece at the bottom of this
  * header before building anything cryptographic on it.
@@ -48,6 +48,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#include "canor_core.h"
+#include "canor_timing.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -117,11 +120,29 @@ bool m24_preserves(const uint8_t *perm);
  * The canonical representative is the numerically smallest word in the orbit,
  * so it depends on the labelling but not on the search order. */
 
-/* Canonical representative of word's M24 orbit, with the orbit size. Returns
- * 0 and sets *size to 0 on allocation failure rather than returning the input
- * unchanged - a quantizer that silently passed its input through would look
- * like an identity bucket. */
-uint32_t m24_canonical(uint32_t word24, long *size);
+/* The orbit search's working storage, placed by the caller (AGENTS.md
+ * invariant 2: no heap in the core). `visited` is a bitset over all 2^24
+ * words - CANOR_GOLAY_M24_VISITED_WORDS uint64_t, 2 MB - and is cleared by
+ * every call. `queue` holds the BFS frontier; CANOR_GOLAY_M24_QUEUE_MAX is
+ * enough for every orbit the census can meet and is the recommended size. */
+#define CANOR_GOLAY_M24_WORDS ((uint32_t)1 << GOLAY_N24)
+#define CANOR_GOLAY_M24_VISITED_WORDS (CANOR_GOLAY_M24_WORDS / 64u)
+#ifndef CANOR_GOLAY_M24_QUEUE_MAX
+#define CANOR_GOLAY_M24_QUEUE_MAX 1000000
+#endif
+typedef struct {
+  uint64_t *visited;          /* CANOR_GOLAY_M24_VISITED_WORDS entries */
+  uint32_t *queue;
+  size_t queue_cap;
+} canor_golay_m24_ws_t;
+
+/* Canonical representative of word's M24 orbit, with the orbit size.
+ * CANOR_ERR_ARGS for a missing workspace; CANOR_ERR_FULL when the orbit
+ * outgrows ws->queue_cap. On any error *canonical and *size are left unset -
+ * a quantizer that silently passed its input through would look like an
+ * identity bucket. */
+canor_status m24_canonical(uint32_t word24, const canor_golay_m24_ws_t *ws,
+                           uint32_t *canonical, long *size);
 
 #define M24_MAX_ORBITS 16
 typedef struct {
@@ -132,8 +153,11 @@ typedef struct {
   long total;
 } m24_orbit_census;
 
-/* Decomposes all C(24,w) subsets of the given weight into M24 orbits. */
-bool m24_orbits_of_weight(int weight, m24_orbit_census *out);
+/* Decomposes all C(24,w) subsets of the given weight into M24 orbits.
+ * CANOR_ERR_FULL when there are more than M24_MAX_ORBITS orbits or one
+ * outgrows the queue; the census then holds what was found so far. */
+canor_status m24_orbits_of_weight(int weight, const canor_golay_m24_ws_t *ws,
+                                  m24_orbit_census *out);
 
 
 /* --- provenance stamps ----------------------------------------------------
@@ -184,67 +208,82 @@ bool prov_stamp(const void *data, size_t n, char *out, int cap);
 bool prov_verify(const void *data, size_t n, const char *stamp, prov_result *r);
 
 /* --- temporal telemetry ---------------------------------------------------
- * A C port of the ternary-phase model in polymorphic-generative-gui's
- * temporalis.pas, kept deliberately faithful:
+ * The ternary-phase model of temporalis.pas, on the canor_timing library
+ * (Canor WD v1 §9 Aether; SCHEMA.md "Timing fields"):
  *
  *   PRE   attention arrives until commitment. Measures the USER.
  *   PERI  commitment until dispatch. Motor, and the most stable.
  *   POST  dispatch until settled. Measures the MACHINE.
  *
  * Averaging the three destroys the signal because they fail for different
- * reasons, so they stay separate here too.
+ * reasons, so they stay separate: each phase is a fixed-capacity series of
+ * canor_timing_sample_t (ops over ticks), CANOR_TIMING_SAMPLES_MAX deep.
+ * A full series REFUSES the next sample with CANOR_ERR_FULL - it never drops
+ * the oldest silently (AGENTS.md invariants 2-3). The caller resets.
+ *
+ * INTEGER ONLY (invariant 1). The old Welford/double statistics are replaced
+ * by exact sums: means and the jitter coefficient are fixed point over
+ * CANOR_ONE, and the 1.96-sigma forecast is a closed integer interval whose
+ * bounds are rounded OUTWARD, so it encloses the real-number forecast.
  *
  * Jitter is the COEFFICIENT OF VARIATION, stddev/mean, not raw stddev - an
  * operation that is slow but consistent has a low CV despite a high mean,
- * while one that is usually fast and occasionally stalls has a high CV despite
- * a low mean, and only the second is a problem.
+ * while one that usually is fast and occasionally stalls has a high CV, and
+ * only the second is a problem. (canor_golay_tele_measure gives the op/sec
+ * LATENCY/JITTER field3 view of the same samples.)
  *
- * Welford online, so mean and variance cost constant space and no history is
- * retained.
- *
- * WHAT GOLAY ADDS, precisely. It does not reduce statistical noise - it is an
- * error-correcting code, not an estimator. What it gives is a BOUNDED
- * quantiser: a window of 23 phase classifications snapped to its nearest
- * codeword moves by at most 3 classifications, so two runs whose windows snap
- * together are provably within 6. That converts "these two sessions felt
- * similar" into a statement with a radius on it. */
+ * WHAT GOLAY ADDS, precisely. It is an error-correcting code, not an
+ * estimator. It gives a BOUNDED quantiser: a window of 23 "was this POST
+ * sample slow" bits snapped to its nearest codeword moves by at most 3, so two
+ * runs whose windows snap together are provably within 6. */
 
-typedef enum { VT_PRE = 0, VT_PERI = 1, VT_POST = 2 } vt_phase;
+#define CANOR_GOLAY_TELE_PHASES CANOR_TIMING_AXIS
+/* Per-sample duration ceiling: keeps every exact sum inside int64. */
+#define CANOR_GOLAY_TELE_TICKS_MAX UINT32_MAX
+/* 1.96 sigma as an exact ratio, and the confidence prior n/(n + 8). */
+#define CANOR_GOLAY_TELE_Z_NUM 196
+#define CANOR_GOLAY_TELE_Z_DEN 100
+#define CANOR_GOLAY_TELE_PRIOR_N 8
 
 typedef struct {
-  int64_t count;
-  double mean, m2, min, max, last;
-} vt_stats;
-
-typedef struct {
-  vt_stats p[3];
+  canor_timing_sample_t s[CANOR_GOLAY_TELE_PHASES][CANOR_TIMING_SAMPLES_MAX];
+  size_t n[CANOR_GOLAY_TELE_PHASES];
+  uint64_t sum_ticks[CANOR_GOLAY_TELE_PHASES];
   uint32_t window;        /* 23-bit rolling history of "was this sample slow" */
   int window_n;
-} vt_op;
+} canor_golay_tele_t;
 
-void vt_reset(vt_op *op);
-void vt_observe(vt_op *op, vt_phase ph, double ms);
-double vt_mean(const vt_op *op, vt_phase ph);
-double vt_stddev(const vt_op *op, vt_phase ph);
-/* stddev/mean. Zero when n < 2: variance is undefined at one sample, and
- * reporting 0 there is honest rather than optimistic. */
-double vt_jitter(const vt_op *op, vt_phase ph);
+void canor_golay_tele_reset(canor_golay_tele_t *t);
+/* One sample of `ops` operations over `ticks` ticks. CANOR_ERR_ARGS for a bad
+ * phase or ops == 0, CANOR_ERR_RANGE for ticks beyond
+ * CANOR_GOLAY_TELE_TICKS_MAX, CANOR_ERR_FULL when the phase series is full. */
+canor_status canor_golay_tele_observe(canor_golay_tele_t *t, canor_timing_phase ph,
+                                      uint64_t ops, uint64_t ticks);
+/* LATENCY and JITTER fields (ops/sec) for the three phases, via
+ * canor_timing_measure. */
+canor_status canor_golay_tele_measure(const canor_golay_tele_t *t, uint64_t hz,
+                                      canor_timing_metric_t *out);
 
+/* All durations in milli-ticks (ticks . CANOR_ONE). */
 typedef struct {
-  double expected_ms, lo_ms, hi_ms;
-  double per_phase[3];
-  double jitter[3];
-  double confidence;      /* n/(n+8) * 1/(1+Jtotal), as in temporalis.pas */
-  int64_t n;
-} vt_forecast;
+  int64_t per_phase_milli[CANOR_GOLAY_TELE_PHASES];  /* mean duration, truncated */
+  int64_t jitter_milli[CANOR_GOLAY_TELE_PHASES];     /* CV over CANOR_ONE; 0 when n < 2 */
+  int64_t expected_milli;                            /* sum of the phase means */
+  /* [lo, hi] encloses expected +- 1.96 sigma (phases independent); outward
+   * rounding, lo clamped at 0 - a negative latency is not a forecast. */
+  int64_t lo_milli, hi_milli;
+  int64_t confidence_milli;  /* n/(n+8) . 1/(1+Jtotal), over CANOR_ONE */
+  int64_t n;                 /* fewest samples in any phase */
+} canor_golay_forecast_t;
 
-void vt_forecast_of(const vt_op *op, vt_forecast *out);
+/* CANOR_ERR_FULL when an exact intermediate outgrows canor_big. */
+canor_status canor_golay_tele_forecast(const canor_golay_tele_t *t, canor_golay_forecast_t *out);
 
 /* The Golay-bounded part: snap the rolling window and report how far it moved.
- * Two ops whose snapped windows are equal are within distance 6 of each other,
- * which is the similarity claim with its radius attached. */
-uint32_t vt_window_snap(const vt_op *op, int *moved);
-bool vt_similar(const vt_op *a, const vt_op *b, int *distance);
+ * Two telemetries whose snapped windows are equal are within distance 6. */
+uint32_t canor_golay_tele_window_snap(const canor_golay_tele_t *t, int *moved);
+bool canor_golay_tele_similar(const canor_golay_tele_t *a, const canor_golay_tele_t *b,
+                              int *distance);
 
 /* --- ON McELIECE ----------------------------------------------------------
  * Do not build a cryptosystem on this code.

@@ -11,9 +11,8 @@
  */
 
 #include "canor_golay.h"
+#include "canor_big.h"
 
-#include <math.h>
-#include <stdlib.h>
 #include <string.h>
 
 /* --- construction ---------------------------------------------------------- */
@@ -223,34 +222,43 @@ bool m24_preserves(const uint8_t *perm) {
  * generators only: the group is finite, so repeated application reaches every
  * inverse and adding them would only duplicate work.
  *
- * The visited set is a 2^24 byte array, 16 MB, allocated per call and freed.
- * That is deliberate rather than cached: the orbit of a single word is the
- * only thing most callers need, and a persistent 16 MB table would be the
- * largest allocation in the whole core for the sake of a function that runs
- * a handful of times.
+ * The visited set is a 2^24-bit bitset (2 MB) and the frontier a queue, both
+ * placed by the caller (AGENTS.md invariant 2): the core allocates nothing,
+ * and a caller that runs the census once can keep them static.
  */
 
-static long m24_orbit_bfs(uint32_t start, uint32_t *canonical,
-                          unsigned char *vis, uint32_t *queue, long cap) {
-  long head = 0, tail = 0, count = 0;
-  uint32_t best = start;
-  int g;
-  const uint8_t *perm[4];
-  for (g = 0; g < 4; ++g) perm[g] = m24_generator((m24_gen)g);
+#define M24_BIT(v, w) (((v)[(w) >> 6] >> ((w) & 63u)) & 1u)
+#define M24_SET(v, w) ((v)[(w) >> 6] |= (uint64_t)1u << ((w) & 63u))
+#define M24_WORD_MASK (CANOR_GOLAY_M24_WORDS - 1u)
+#define M24_GENERATORS 4
 
-  start &= 0xffffffu;
-  vis[start] = 1;
-  queue[tail++] = start;
+static bool m24_ws_valid(const canor_golay_m24_ws_t *ws) {
+  return ws && ws->visited && ws->queue && ws->queue_cap > 0;
+}
+
+/* Returns the orbit size, or -1 when the queue is full (CANOR_ERR_FULL). */
+static long m24_orbit_bfs(uint32_t start, uint32_t *canonical, const canor_golay_m24_ws_t *ws) {
+  size_t head = 0, tail = 0;
+  long count = 0;
+  uint32_t best;
+  int g;
+  const uint8_t *perm[M24_GENERATORS];
+  for (g = 0; g < M24_GENERATORS; ++g) perm[g] = m24_generator((m24_gen)g);
+
+  start &= M24_WORD_MASK;
+  best = start;
+  M24_SET(ws->visited, start);
+  ws->queue[tail++] = start;
   ++count;
   while (head < tail) {
-    uint32_t cur = queue[head++];
+    uint32_t cur = ws->queue[head++];
     if (cur < best) best = cur;
-    for (g = 0; g < 4; ++g) {
+    for (g = 0; g < M24_GENERATORS; ++g) {
       uint32_t nxt = m24_apply(perm[g], cur);
-      if (!vis[nxt]) {
-        vis[nxt] = 1;
-        if (tail >= cap) return -1;
-        queue[tail++] = nxt;
+      if (!M24_BIT(ws->visited, nxt)) {
+        M24_SET(ws->visited, nxt);
+        if (tail >= ws->queue_cap) return -1;
+        ws->queue[tail++] = nxt;
         ++count;
       }
     }
@@ -259,59 +267,44 @@ static long m24_orbit_bfs(uint32_t start, uint32_t *canonical,
   return count;
 }
 
-uint32_t m24_canonical(uint32_t word24, long *size) {
-  unsigned char *vis;
-  uint32_t *queue, best = 0;
+canor_status m24_canonical(uint32_t word24, const canor_golay_m24_ws_t *ws,
+                           uint32_t *canonical, long *size) {
+  uint32_t best = 0;
   long n;
-  const long CAP = 1000000;
-  vis = (unsigned char *)calloc((size_t)1 << 24, 1);
-  queue = (uint32_t *)malloc((size_t)CAP * sizeof *queue);
-  if (!vis || !queue) {
-    free(vis); free(queue);
-    if (size) *size = 0;
-    return 0;                     /* refuse, rather than pass the input back */
-  }
-  n = m24_orbit_bfs(word24, &best, vis, queue, CAP);
-  free(vis);
-  free(queue);
+  if (!m24_ws_valid(ws)) return CANOR_ERR_ARGS;
+  memset(ws->visited, 0, (size_t)CANOR_GOLAY_M24_VISITED_WORDS * sizeof *ws->visited);
+  n = m24_orbit_bfs(word24, &best, ws);
+  if (n < 0) return CANOR_ERR_FULL;
+  if (canonical) *canonical = best;
   if (size) *size = n;
-  return n > 0 ? best : 0;
+  return CANOR_OK;
 }
 
-bool m24_orbits_of_weight(int weight, m24_orbit_census *out) {
-  unsigned char *vis;
-  uint32_t *queue;
-  const long CAP = 1000000;
+canor_status m24_orbits_of_weight(int weight, const canor_golay_m24_ws_t *ws,
+                                  m24_orbit_census *out) {
   uint32_t w;
-  bool ok = true;
-
-  if (!out || weight < 0 || weight > 24) return false;
+  if (!out || !m24_ws_valid(ws) || weight < 0 || weight > GOLAY_N24) return CANOR_ERR_ARGS;
   memset(out, 0, sizeof *out);
   out->weight = weight;
-
-  vis = (unsigned char *)calloc((size_t)1 << 24, 1);
-  queue = (uint32_t *)malloc((size_t)CAP * sizeof *queue);
-  if (!vis || !queue) { free(vis); free(queue); return false; }
+  memset(ws->visited, 0, (size_t)CANOR_GOLAY_M24_VISITED_WORDS * sizeof *ws->visited);
 
   /* Sweep every word of the requested weight. A word already visited belongs
    * to an orbit that has been counted, so each orbit is discovered exactly
    * once, from its numerically smallest unvisited member. */
-  for (w = 0; w < (1u << 24); ++w) {
+  for (w = 0; w < CANOR_GOLAY_M24_WORDS; ++w) {
     long n;
     uint32_t rep = 0;
     if (golay_weight(w) != weight) continue;
-    if (vis[w]) continue;
-    if (out->norbits >= M24_MAX_ORBITS) { ok = false; break; }
-    n = m24_orbit_bfs(w, &rep, vis, queue, CAP);
-    if (n < 0) { ok = false; break; }
+    if (M24_BIT(ws->visited, w)) continue;
+    if (out->norbits >= M24_MAX_ORBITS) return CANOR_ERR_FULL;
+    n = m24_orbit_bfs(w, &rep, ws);
+    if (n < 0) return CANOR_ERR_FULL;
     out->size[out->norbits] = n;
     out->rep[out->norbits] = rep;
     ++out->norbits;
     out->total += n;
   }
-  free(vis);
-  free(queue);
-  return ok;
+  return CANOR_OK;
 }
 
 
@@ -404,83 +397,155 @@ bool prov_verify(const void *data, size_t n, const char *stamp, prov_result *r) 
 
 /* --- temporal telemetry ----------------------------------------------------- */
 
-void vt_reset(vt_op *op) {
-  int i;
-  memset(op, 0, sizeof *op);
-  for (i = 0; i < 3; ++i) { op->p[i].min = 0.0; op->p[i].max = 0.0; }
+#define TELE_MILLI 1000                     /* CANOR_ONE */
+#define TELE_MICRO (TELE_MILLI * TELE_MILLI)
+#define TELE_WINDOW_MASK ((1u << GOLAY_N23) - 1u)
+
+/* Chains canor_big calls: each runs only while every earlier one succeeded. */
+#define TELE_TRY(st, e) do { if ((st) == CANOR_OK) (st) = (e); } while (0)
+
+void canor_golay_tele_reset(canor_golay_tele_t *t) {
+  if (t) memset(t, 0, sizeof *t);
 }
 
-void vt_observe(vt_op *op, vt_phase ph, double ms) {
-  vt_stats *s = &op->p[(int)ph];
-  double d, d2;
-  if (!op || (int)ph < 0 || (int)ph > 2) return;
-  ++s->count;
-  d = ms - s->mean;
-  s->mean += d / (double)s->count;
-  d2 = ms - s->mean;
-  s->m2 += d * d2;                        /* Welford: no history retained */
-  if (s->count == 1) { s->min = s->max = ms; }
-  else { if (ms < s->min) s->min = ms; if (ms > s->max) s->max = ms; }
-  s->last = ms;
+canor_status canor_golay_tele_observe(canor_golay_tele_t *t, canor_timing_phase ph,
+                                      uint64_t ops, uint64_t ticks) {
+  size_t i;
+  if (!t || (int)ph < 0 || (int)ph >= CANOR_GOLAY_TELE_PHASES || ops == 0) return CANOR_ERR_ARGS;
+  if (ticks > CANOR_GOLAY_TELE_TICKS_MAX) return CANOR_ERR_RANGE;
+  i = t->n[ph];
+  if (i >= CANOR_TIMING_SAMPLES_MAX) return CANOR_ERR_FULL;   /* refuse, never drop */
+  t->s[ph][i].ops = ops;
+  t->s[ph][i].ticks = ticks;
+  t->n[ph] = i + 1;
+  t->sum_ticks[ph] += ticks;
 
   /* Roll the 23-bit window on the POST phase only: post measures the machine,
    * and a window mixing user deliberation with machine response would snap to
-   * a codeword that meant nothing in particular. */
-  if (ph == VT_POST) {
-    int slow = (s->count > 1 && ms > s->mean) ? 1 : 0;
-    op->window = ((op->window << 1) | (uint32_t)slow) & 0x7fffffu;
-    if (op->window_n < GOLAY_N23) ++op->window_n;
+   * a codeword that meant nothing in particular. "Slow" is a duration above
+   * the running mean (this sample included), compared exactly as
+   * ticks . n > sum - no division, no rounding. */
+  if (ph == CANOR_TIMING_POST) {
+    int slow = (t->n[ph] > 1 && ticks * (uint64_t)t->n[ph] > t->sum_ticks[ph]) ? 1 : 0;
+    t->window = ((t->window << 1) | (uint32_t)slow) & TELE_WINDOW_MASK;
+    if (t->window_n < GOLAY_N23) ++t->window_n;
   }
+  return CANOR_OK;
 }
 
-double vt_mean(const vt_op *op, vt_phase ph) { return op->p[(int)ph].mean; }
-
-double vt_stddev(const vt_op *op, vt_phase ph) {
-  const vt_stats *s = &op->p[(int)ph];
-  if (s->count < 2) return 0.0;
-  return sqrt(s->m2 / (double)s->count);
+canor_status canor_golay_tele_measure(const canor_golay_tele_t *t, uint64_t hz,
+                                      canor_timing_metric_t *out) {
+  canor_timing_series_t series[CANOR_GOLAY_TELE_PHASES];
+  int p;
+  if (!t || !out) return CANOR_ERR_ARGS;
+  for (p = 0; p < CANOR_GOLAY_TELE_PHASES; ++p) {
+    series[p].s = t->s[p];
+    series[p].n = t->n[p];
+  }
+  return canor_timing_measure(series, hz, out);
 }
 
-double vt_jitter(const vt_op *op, vt_phase ph) {
-  const vt_stats *s = &op->p[(int)ph];
-  if (s->count < 2 || s->mean <= 0.0) return 0.0;
-  return vt_stddev(op, ph) / s->mean;
+/* n.sum(t^2) - (sum t)^2 = n^2 . variance, exact, in canor_big. */
+static canor_status tele_n2var(const canor_golay_tele_t *t, int p, canor_big_t *out) {
+  canor_big_t q, x, s;
+  size_t i;
+  canor_status st = CANOR_OK;
+  canor_big_init(&q);
+  for (i = 0; i < t->n[p]; ++i) {
+    canor_big_set_i64(&x, (int64_t)t->s[p][i].ticks);
+    TELE_TRY(st, canor_big_mul(&x, &x, &x));
+    TELE_TRY(st, canor_big_add(&q, &q, &x));
+  }
+  TELE_TRY(st, canor_big_mul_i64(&q, &q, (int64_t)t->n[p]));
+  canor_big_set_i64(&s, (int64_t)t->sum_ticks[p]);
+  TELE_TRY(st, canor_big_mul(&s, &s, &s));
+  TELE_TRY(st, canor_big_sub(out, &q, &s));
+  return st;
 }
 
-void vt_forecast_of(const vt_op *op, vt_forecast *out) {
-  double total = 0.0, var = 0.0, jt = 0.0, sd;
-  int64_t nmin = -1;
-  int i;
+/* ceil(sqrt(num / den)) for num >= 0, den > 0. */
+static canor_status tele_ceil_sqrt(const canor_big_t *num, const canor_big_t *den, canor_big_t *out) {
+  canor_big_t q, r, sq, one;
+  canor_status st = CANOR_OK;
+  canor_big_set_i64(&one, 1);
+  TELE_TRY(st, canor_big_divmod(&q, &r, num, den));
+  if (st == CANOR_OK && !canor_big_is_zero(&r)) TELE_TRY(st, canor_big_add(&q, &q, &one));
+  TELE_TRY(st, canor_big_isqrt(out, &q));
+  TELE_TRY(st, canor_big_mul(&sq, out, out));
+  if (st == CANOR_OK && canor_big_cmp(&sq, &q) < 0) TELE_TRY(st, canor_big_add(out, out, &one));
+  return st;
+}
+
+canor_status canor_golay_tele_forecast(const canor_golay_tele_t *t, canor_golay_forecast_t *out) {
+  canor_big_t num, den, v, w, r;
+  int64_t exp_lo = 0, exp_hi = 0, jt = 0, nmin = -1, margin = 0;
+  int p;
+  canor_status st = CANOR_OK;
+  if (!t || !out) return CANOR_ERR_ARGS;
   memset(out, 0, sizeof *out);
-  for (i = 0; i < 3; ++i) {
-    double m = op->p[i].mean, j = vt_jitter(op, (vt_phase)i);
-    double sdi = vt_stddev(op, (vt_phase)i);
-    out->per_phase[i] = m;
-    out->jitter[i] = j;
-    total += m;
-    var += sdi * sdi;                    /* phases treated as independent */
-    jt += j;
-    if (nmin < 0 || op->p[i].count < nmin) nmin = op->p[i].count;
+
+  /* Total variance = sum_p V_p with V_p = n2var_p / n_p^2 (phases treated as
+   * independent). Accumulated over a common denominator, exactly. */
+  canor_big_init(&num);
+  canor_big_set_i64(&den, 1);
+  for (p = 0; p < CANOR_GOLAY_TELE_PHASES && st == CANOR_OK; ++p) {
+    int64_t n = (int64_t)t->n[p], s = (int64_t)t->sum_ticks[p];
+    if (nmin < 0 || n < nmin) nmin = n;
+    if (n == 0) continue;
+    /* Means in milli-ticks: floor for the low end, ceil for the high end, so
+     * the interval below stays an enclosure. */
+    out->per_phase_milli[p] = s * TELE_MILLI / n;
+    exp_lo += s * TELE_MILLI / n;
+    exp_hi += (s * TELE_MILLI + n - 1) / n;
+    if (n < 2) continue;
+    TELE_TRY(st, tele_n2var(t, p, &v));
+    /* num/den += v / n^2 */
+    TELE_TRY(st, canor_big_mul_i64(&num, &num, n * n));
+    TELE_TRY(st, canor_big_mul(&w, &v, &den));
+    TELE_TRY(st, canor_big_add(&num, &num, &w));
+    TELE_TRY(st, canor_big_mul_i64(&den, &den, n * n));
+    /* CV = sqrt(n2var) / sum, in milli: isqrt(n2var . 10^6) / sum. */
+    if (s > 0) {
+      int64_t cv = 0;
+      TELE_TRY(st, canor_big_mul_i64(&w, &v, TELE_MICRO));
+      TELE_TRY(st, canor_big_isqrt(&r, &w));
+      TELE_TRY(st, canor_big_to_i64(&r, &cv));
+      if (st == CANOR_OK) out->jitter_milli[p] = cv / s;
+    }
+    jt += out->jitter_milli[p];
   }
-  sd = sqrt(var);
-  out->expected_ms = total;
-  out->lo_ms = total - 1.96 * sd;
-  if (out->lo_ms < 0.0) out->lo_ms = 0.0;   /* a negative latency is not a forecast */
-  out->hi_ms = total + 1.96 * sd;
+  /* margin = ceil(1.96 . sigma) in milli-ticks
+   *        = ceil(sqrt(num . 196^2 . 10^6 / (den . 100^2))) */
+  TELE_TRY(st, canor_big_mul_i64(&num, &num,
+               (int64_t)CANOR_GOLAY_TELE_Z_NUM * CANOR_GOLAY_TELE_Z_NUM));
+  TELE_TRY(st, canor_big_mul_i64(&num, &num, TELE_MICRO));
+  TELE_TRY(st, canor_big_mul_i64(&den, &den,
+               (int64_t)CANOR_GOLAY_TELE_Z_DEN * CANOR_GOLAY_TELE_Z_DEN));
+  TELE_TRY(st, tele_ceil_sqrt(&num, &den, &r));
+  TELE_TRY(st, canor_big_to_i64(&r, &margin));
+  if (st) return st;
+
+  out->expected_milli = exp_lo;
+  out->lo_milli = exp_lo - margin;
+  if (out->lo_milli < 0) out->lo_milli = 0;
+  out->hi_milli = exp_hi + margin;
   out->n = nmin < 0 ? 0 : nmin;
-  out->confidence = ((double)out->n / ((double)out->n + 8.0)) * (1.0 / (1.0 + jt));
+  /* n/(n+8) . 1/(1 + Jtotal) over CANOR_ONE: 10^6 . n / ((n+8)(1000 + Jt)). */
+  out->confidence_milli = (int64_t)TELE_MICRO * out->n /
+                          ((out->n + CANOR_GOLAY_TELE_PRIOR_N) * (TELE_MILLI + jt));
+  return CANOR_OK;
 }
 
-uint32_t vt_window_snap(const vt_op *op, int *moved) {
-  return golay_snap23(op->window, moved);
+uint32_t canor_golay_tele_window_snap(const canor_golay_tele_t *t, int *moved) {
+  return golay_snap23(t->window, moved);
 }
 
-bool vt_similar(const vt_op *a, const vt_op *b, int *distance) {
-  int ma = 0, mb = 0, d;
+bool canor_golay_tele_similar(const canor_golay_tele_t *a, const canor_golay_tele_t *b,
+                              int *distance) {
+  int ma = 0, mb = 0;
   uint32_t sa = golay_snap23(a->window, &ma);
   uint32_t sb = golay_snap23(b->window, &mb);
-  d = golay_distance(a->window, b->window);
-  if (distance) *distance = d;
+  if (distance) *distance = golay_distance(a->window, b->window);
   /* Equal snapped windows put the raw windows within 3+3 by the triangle
    * inequality - a similarity claim that carries its own radius. */
   return sa == sb;

@@ -40,7 +40,10 @@
  *
  * 4. Dictionary and WordFlowMap had NO CAPACITY CHECK. `canor_dictionary_add`
  *    wrote at `dict->count` with nothing stopping it passing the allocation.
- *    Capacity is now stored and both refuse when full.
+ *    Every container is now a fixed array sized by an #ifndef-overridable
+ *    CANOR_*_MAX, placed by the caller, and every insert refuses with
+ *    CANOR_ERR_FULL when full (AGENTS.md invariant 2). Nothing here touches a
+ *    heap, so there is nothing to free.
  *
  * A FIFTH CHANGE IS AN ADDITION, not a correction. FLOW is a 32-bit identifier
  * derived from content by hash, and a hash cannot be inverted - so
@@ -65,6 +68,24 @@ extern "C" {
 
 #include "canor_core.h"
 
+/* Fixed capacities (AGENTS.md invariant 2). An RGB string holds at most what
+ * the lossless hypervector form can carry: two bits per symbol. */
+#ifndef CANOR_RGB_MAX
+#define CANOR_RGB_MAX (CANOR_HV_BITS / 2u)
+#endif
+#ifndef CANOR_DICT_MAX
+#define CANOR_DICT_MAX 256
+#endif
+#ifndef CANOR_LABEL_MAX
+#define CANOR_LABEL_MAX CANOR_IDENT_MAX     /* bytes per label, NUL included */
+#endif
+#ifndef CANOR_WORDFLOW_MAX
+#define CANOR_WORDFLOW_MAX 256
+#endif
+#ifndef CANOR_FLOWSTORE_MAX
+#define CANOR_FLOWSTORE_MAX 64
+#endif
+
 #define CANOR_ERR       CANOR_ERR_ARGS
 #define CANOR_NOT_FOUND CANOR_ERR_NOT_FOUND
 #define CANOR_FULL      CANOR_ERR_FULL
@@ -83,9 +104,11 @@ typedef enum {
     RGB_Base = 2
 } RGBPrimitive;
 
+/* Value type: copying the struct copies the content. primitives[] holds
+ * RGBPrimitive values, one byte each. */
 typedef struct {
     size_t length;
-    RGBPrimitive *primitives;
+    uint8_t primitives[CANOR_RGB_MAX];
 } RGBString;
 
 /* 5. Flow. An identifier derived from content; see the FlowStore note above. */
@@ -97,10 +120,10 @@ typedef struct {
 
 /* 6. Dictionary */
 typedef struct {
-    WORD *words;
-    char **labels;
+    WORD words[CANOR_DICT_MAX];
+    char labels[CANOR_DICT_MAX][CANOR_LABEL_MAX];
     size_t count;
-    size_t capacity;         /* added: the skeleton could overrun */
+    size_t capacity;         /* <= CANOR_DICT_MAX; the skeleton could overrun */
 } Dictionary;
 
 /* 7. Word-To-Flow Mapping. Many-to-one by design: several words may share one
@@ -111,19 +134,19 @@ typedef struct {
 } WordFlowEntry;
 
 typedef struct {
-    WordFlowEntry *entries;
+    WordFlowEntry entries[CANOR_WORDFLOW_MAX];
     size_t length;
-    size_t capacity;         /* added */
+    size_t capacity;         /* <= CANOR_WORDFLOW_MAX */
 } WordFlowMap;
 
 /* Resolves a FLOW id back to the RGB content it was derived from. Needed
  * because a hash is not invertible and section 21's exact invariant is over
  * content, not over identifiers. */
 typedef struct {
-    FLOW *flows;
-    RGBString *content;
+    FLOW flows[CANOR_FLOWSTORE_MAX];
+    RGBString content[CANOR_FLOWSTORE_MAX];
     size_t count;
-    size_t capacity;
+    size_t capacity;         /* <= CANOR_FLOWSTORE_MAX */
 } FlowStore;
 
 /* 8. Semantic Tree placeholder - unchanged, still a placeholder. */
@@ -192,22 +215,23 @@ uint64_t canor_rand(const STRATEGY *s, uint64_t seed, uint64_t index);
 
 WORD canor_word_from_cstr(const char *s);
 FLOW canor_flow_from_rgb(const RGBString *rgb);
+/* CANOR_ERR_FULL when the text holds more than CANOR_RGB_MAX symbols. */
 int canor_rgb_parse(const char *s, RGBString *out);
 int canor_rgb_copy(const RGBString *src, RGBString *dst);
 int canor_rgb_equal(const RGBString *a, const RGBString *b);
-void canor_rgb_free(RGBString *rgb);
 /* dimension(s) = count(Base, s), per FLOWALGEBRA section 4. */
 size_t canor_rgb_dimension(const RGBString *rgb);
 
 /* --- dictionary, mapping, flow store -------------------------------------- */
 
+/* Each init takes a capacity limit: 0 means the full compiled capacity, and a
+ * limit above it is CANOR_ERR_FULL. Inserts past the limit are CANOR_ERR_FULL. */
 int canor_dictionary_init(Dictionary *dict, size_t capacity);
-void canor_dictionary_free(Dictionary *dict);
+/* A label of CANOR_LABEL_MAX bytes or more is CANOR_ERR_FULL, never cut. */
 int canor_dictionary_add(Dictionary *dict, const char *label, WORD *out_word);
 const char *canor_dictionary_label(const Dictionary *dict, WORD word);
 
 int canor_wordflow_init(WordFlowMap *map, size_t capacity);
-void canor_wordflow_free(WordFlowMap *map);
 int canor_wordflow_put(WordFlowMap *map, WORD word, FLOW flow);
 int canor_wordflow_get(const WordFlowMap *map, WORD word, FLOW *out);
 int canor_wordflow_reverse_first(const WordFlowMap *map, FLOW flow, WORD *out);
@@ -217,7 +241,6 @@ size_t canor_wordflow_reverse_all(const WordFlowMap *map, FLOW flow,
                                WORD *out, size_t max);
 
 int canor_flowstore_init(FlowStore *fs, size_t capacity);
-void canor_flowstore_free(FlowStore *fs);
 /* Interns content and returns its FLOW. Re-adding identical content returns
  * the same FLOW, which is what makes identity comparison an id comparison. */
 int canor_flowstore_add(FlowStore *fs, const RGBString *rgb, FLOW *out);

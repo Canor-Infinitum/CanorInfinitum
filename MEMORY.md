@@ -56,6 +56,17 @@ Append-only. Format: `YYYY-MM-DD — Decision — Why — Source`.
 - 2026-10-21 — **Opt-in PQC profile `pqc-slh-dsa`** described in `CanorLinguae/elite/TRUST.md` (SHA3-512, SLH-DSA-SHAKE-256s, hybrid McEliece + ML-KEM-1024); not a project default; no core change. — User decision (rescoped from the 2026-10-20 trust-model session; the core changes made that day were reverted).
 - 2026-10-21 — **INI variable classes PINNED** (SCHEMA.md "INI variables"): `__name__` Global (internal), `_name_` Scoped (internal/project), `__name` Limited (project), `_name` Custom (any), `name` Public; strict lowercase names for the underscore classes, case-blind compare, untranslated names, Globals equal across locale files, `;` comments. — User decision (approved as shown). — SCHEMA.md.
 - 2026-10-22 — **The repository's Markdown is the spec authority; the PDF drafts are legacy.** CLAUDE.md, CONTEXT.md, README.md, SKILL.md and PROMPTS.md no longer point agents at PDFs outside the repo. §-labels stay as citations. — User direction.
+- 2026-10-22 — **Legacy modules ported to invariants 1–2 (integer only, fixed capacity).** The library has no heap and no floating point. The improved AGENTS.md lint is empty for `source/include` and `source/src`, and gcc + clang build and pass ctest. Changes:
+  - **`canor_big`:** heap `fb_*` is replaced by caller-placed `canor_big_t` / `canor_big_rat_t` with `CANOR_BIG_LIMBS_MAX` = 128 × 32-bit limbs (4096 bits). An operation that needs more is CANOR_ERR_FULL and leaves its destination unchanged. Adds `isqrt` / `iroot`.
+  - **`canor_poly`:** Mittag-Leffler computes 1/Γ from the declared A&S 6.1.34 26-coefficient integer table, quantized to 64 significant bits. `t^α` uses an exact integer root, with the argument as floor(t^α·10⁶)/10⁶.
+  - **`canor_prime`:** the sieve uses static tables sized by `CANOR_PRIME_LIMIT`, and a limit above it is refused rather than clamped. `canor_residual_L` takes θ, φ as `canor_rational` and reports Q20 `value_*_q20`. The Arbitrary-class order uses a Q30 integer exp2.
+  - **`canor_sym`:** series and axis values are int64 milli. The log axes are now base 2 instead of base 10 (a declared scale change).
+  - **`canor_golay`:** `vt_*` is replaced by `canor_golay_tele_*` on `canor_timing` samples (CANOR_ERR_FULL at `CANOR_TIMING_SAMPLES_MAX`, never dropped). The 1.96σ forecast is an outward-rounded integer interval. The M24 search uses a caller workspace (`canor_golay_m24_ws_t`: 2^24-bit visited bitset plus a queue with a capacity).
+  - **`canor_index`:** `canor_tree` / `canor_ann` are caller-placed structs (`CANOR_TREE_WORDS_MAX`, `CANOR_ANN_TABLES/BITS/N_MAX`).
+  - **`canor_flow`:** RGBString is a value type (`CANOR_RGB_MAX`). Dictionary, WordFlowMap and FlowStore use fixed arrays (`CANOR_DICT_MAX`, `CANOR_LABEL_MAX`, `CANOR_WORDFLOW_MAX`, `CANOR_FLOWSTORE_MAX`), and the `*_free` functions are gone.
+  - **`canor_fw`:** `fw_read_file` reads into a caller buffer.
+  - **Tests:** `canor_test_big`, `canor_test_containers`.
+  - **Known break:** `source/examples/canor_demo/` no longer compiles because it still uses `fb_*`, `vt_*` and the old signatures; examples are tracked separately. — User approval (fix requested). — `canor_big.h`, `canor_golay.h`, `canor_index.h`, `canor_flow.h`.
 
 ## Canonical Module Mapping (Approved)
 | Module Name | Target Header / Source | Destination |
@@ -95,7 +106,9 @@ Append-only. Format: `YYYY-MM-DD — Decision — Why — Source`.
 - [x] Representations, MetaFlow complex-fractal excitation, Strategy ↔ Ore binding, Soul category: decided 2026-10-21 (entries above).
 - [ ] Digest algorithm: profile-defined; being specified in the United/Elite session. Generator writes `unset`.
 - [ ] Soul grayscale conversion and realification/complexification form: profile-defined, `unset`.
-- [ ] Legacy modules violate invariants 1–2 (heap and floating point in `canor_big`, `poly`, `prime`, `sym`, `flow`, `golay`, `index`, `fw`): port in progress in its own session; `canor_fw` done.
+- [x] Legacy modules violated invariants 1–2: ported 2026-10-22 (entry above).
+- [ ] `source/examples/canor_demo/` must move to the ported APIs (`canor_big_*`, `canor_golay_tele_*`, M24 workspace, fixed-capacity flow/index containers, `fw_read_file` buffer, Q20 residual values).
+- [ ] Legacy non-`canor_*` identifiers remain in `canor_golay` (`golay_*`, `m24_*`, `prov_*`) and `canor_fw` (`fw_*`); renaming needs its own pass.
 - [ ] Elite: digest and signature algorithms, trust roots, revocation, signature lifecycle (profile-defined; `canor_elite` calls the profile's pure digest/verify functions and reports UNDEFINED while unset).
 - [ ] Elite: error-category taxonomy (anti-cheat, anti-malware / anti-virus, …) and each category's metric, scale and bound; metrics other than `gram-linf` are measured outside the core.
 - [ ] Elite: certification rule. Current: recompute, then E_recomputed ⊆ E_claimed ⊆ A ⊆ B. Alternative: a tolerance band.

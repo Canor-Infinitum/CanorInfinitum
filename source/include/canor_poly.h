@@ -35,8 +35,9 @@
  * exponentially, and at a < 1 it decays as a power law, i.e. with memory.
  *
  * Gamma at rational arguments is not rational, so the series is evaluated with
- * a rational approximation to 1/Gamma at each term and the truncation is
- * declared - deterministic, bounded, not exact, exactly as canor_exp_rat.
+ * a rational approximation to 1/Gamma at each term - a declared integer table
+ * (Abramowitz & Stegun 6.1.34), no libm - and the truncation is declared:
+ * deterministic, bounded, not exact, exactly as canor_exp_rat.
  */
 
 #include <stdbool.h>
@@ -87,7 +88,7 @@ bool canor_poly_resolvent_cubic(const canor_poly *quartic, canor_poly *out);
 /* Builds the [m/n] Pade approximant of exp about 0 and evaluates it at x. All
  * coefficients are rational, so the result is exact rational arithmetic and
  * the only approximation is the truncation the approximant itself represents. */
-bool canor_pade_exp(canor_rational x, int m, int n, fb_rat *out, int *squarings);
+bool canor_pade_exp(canor_rational x, int m, int n, canor_big_rat_t *out, int *squarings);
 
 /* --- Mittag-Leffler --------------------------------------------------------- */
 
@@ -101,13 +102,13 @@ typedef struct {
 /* E(alpha, beta; z) for rational alpha, beta, z. alpha = beta = 1 gives exp,
  * and that identity is checked in the suite rather than assumed. */
 bool canor_mittag_leffler(canor_rational alpha, canor_rational beta, canor_rational z,
-                       int terms, fb_rat *out, canor_ml_report *rep);
+                       int terms, canor_big_rat_t *out, canor_ml_report *rep);
 
 /* The damped PFISD response: E(alpha, 1; -lambda . t^alpha), which is the
  * inverse Laplace transform of s^(alpha-1)/(s^alpha + lambda). At alpha = 1
  * this is exp(-lambda.t). */
 bool canor_fractional_relax(canor_rational alpha, canor_rational lambda, canor_rational t,
-                         int terms, fb_rat *out, canor_ml_report *rep);
+                         int terms, canor_big_rat_t *out, canor_ml_report *rep);
 
 #ifdef __cplusplus
 }

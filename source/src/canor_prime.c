@@ -10,14 +10,14 @@
 #include "canor_prime.h"
 #include "canor_big.h"
 
-#include <math.h>
-#include <stdlib.h>
 #include <string.h>
 
-static int32_t *g_spf;          /* smallest prime factor */
-static int32_t *g_primes;
+/* Fixed static tables (AGENTS.md invariant 2): the sieve is process state built
+ * once, so it lives in sized storage rather than on a heap. */
+static int32_t g_spf[CANOR_PRIME_LIMIT + 1];   /* smallest prime factor */
+static int32_t g_primes[CANOR_PRIME_COUNT_MAX];
 static int32_t g_nprimes;
-static int32_t g_limit;
+static int32_t g_limit;                        /* 0 until built */
 
 int32_t canor_prime_count(void) { return g_nprimes; }
 int32_t canor_prime_at(int32_t i) {
@@ -27,20 +27,17 @@ int32_t canor_prime_at(int32_t i) {
 bool canor_prime_init(int32_t limit) {
   int32_t i, j;
   if (limit < 2) limit = 2;
-  if (limit > CANOR_PRIME_LIMIT) limit = CANOR_PRIME_LIMIT;
-  if (g_spf && g_limit >= limit) return true;
+  if (limit > CANOR_PRIME_LIMIT) return false;   /* refused, never clamped */
+  if (g_limit >= limit) return true;
 
-  free(g_spf);
-  free(g_primes);
-  g_spf = (int32_t *)calloc((size_t)limit + 1, sizeof *g_spf);
-  g_primes = (int32_t *)malloc((size_t)(limit / 2 + 16) * sizeof *g_primes);
-  if (!g_spf || !g_primes) { free(g_spf); free(g_primes); g_spf = NULL; g_primes = NULL; return false; }
-  g_limit = limit;
+  memset(g_spf, 0, ((size_t)limit + 1) * sizeof *g_spf);
+  g_limit = 0;
   g_nprimes = 0;
 
   for (i = 2; i <= limit; ++i) {
     if (g_spf[i] == 0) {                 /* i has no smaller factor: prime */
       g_spf[i] = i;
+      if (g_nprimes >= CANOR_PRIME_COUNT_MAX) return false;   /* full: refuse */
       g_primes[g_nprimes++] = i;
     }
     for (j = 0; j < g_nprimes; ++j) {
@@ -50,23 +47,24 @@ bool canor_prime_init(int32_t limit) {
       g_spf[p * i] = p;                  /* crossed off by its least factor */
     }
   }
+  g_limit = limit;
   return true;
 }
 
 bool canor_is_prime(int32_t n) {
-  if (n < 2 || !g_spf || n > g_limit) return false;
+  if (n < 2 || n > g_limit) return false;
   return g_spf[n] == n;
 }
 
 int32_t canor_smallest_factor(int32_t n) {
-  if (n < 2 || !g_spf || n > g_limit) return 0;
+  if (n < 2 || n > g_limit) return 0;
   return g_spf[n];
 }
 
 bool canor_factorise(int32_t n, canor_factorisation *out) {
   if (!out) return false;
   memset(out, 0, sizeof *out);
-  if (n < 2 || !g_spf || n > g_limit) return n >= 1;
+  if (n < 2 || n > g_limit) return n >= 1;
   while (n > 1) {
     int32_t p = g_spf[n], e = 0;
     if (p <= 0) return false;
@@ -137,132 +135,161 @@ int64_t canor_factorial_valuation(int32_t n, int32_t p) {
 
 /* --- deterministic transcendentals ------------------------------------------ */
 
-/* Sums a Taylor series with the given term rule. `alt` alternates signs (cos,
- * sin); `step` is 1 for exp, 2 for cos and sin; `start` is the first power. */
-static bool taylor(const fb_rat *x, int terms, int start, int step, int alt,
-                   fb_rat *out, int *used) {
-  fb_rat term, acc, xp, num, den;
+/* Chains canor_big calls: each runs only while every earlier one succeeded. */
+#define PRIME_TRY(st, e) do { if ((st) == CANOR_OK) (st) = (e); } while (0)
+
+/* Range-reduction ceiling: |x| is halved at most this many times. */
+#define PRIME_SQUARINGS_MAX 40
+#define PRIME_EXP_TERMS_MIN 4
+#define PRIME_EXP_TERMS_MAX 64
+#define PRIME_TRIG_TERMS_MAX 40
+#define PRIME_MILLI 1000
+
+/* Sums a Taylor series. `alt` alternates signs (cos, sin); `step` is 1 for exp,
+ * 2 for cos and sin; `start` is the first power. */
+static canor_status taylor(const canor_big_rat_t *x, int terms, int start, int step, int alt,
+                           canor_big_rat_t *out, int *used) {
+  canor_big_rat_t term, acc, xp, den, inv, mul;
   int i, k;
-  bool ok = true;
+  canor_status st = CANOR_OK;
 
-  fb_rat_init(&term); fb_rat_init(&acc); fb_rat_init(&xp);
-  fb_rat_init(&num); fb_rat_init(&den);
-  if (!fb_rat_set_i64(&acc, 0, 1) || !fb_rat_set_i64(&xp, 1, 1)) ok = false;
-
-  /* x^start */
-  for (i = 0; ok && i < start; ++i) ok = fb_rat_mul(&xp, &xp, x);
-
+  canor_big_rat_init(&acc);
+  PRIME_TRY(st, canor_big_rat_set_i64(&xp, 1, 1));
+  for (i = 0; i < start; ++i) PRIME_TRY(st, canor_big_rat_mul(&xp, &xp, x));
   {
-    /* factorial of `start`, then multiplied up by `step` each term */
     int64_t f = 1;
     for (i = 2; i <= start; ++i) f *= i;
-    if (ok) ok = fb_rat_set_i64(&den, f, 1);
+    PRIME_TRY(st, canor_big_rat_set_i64(&den, f, 1));
   }
-
-  for (k = 0; ok && k < terms; ++k) {
-    fb_rat inv;
-    fb_rat_init(&inv);
-    ok = fb_copy(&inv.num, &den.den) && fb_copy(&inv.den, &den.num) &&
-         fb_rat_normalize(&inv) && fb_rat_mul(&term, &xp, &inv);
-    fb_rat_free(&inv);
-    if (!ok) break;
-    if (alt && (k & 1)) { fb_neg(&term.num); }
-    if (!fb_rat_add(&acc, &acc, &term)) { ok = false; break; }
-    /* advance x^p and the factorial by `step` */
-    for (i = 0; ok && i < step; ++i) ok = fb_rat_mul(&xp, &xp, x);
+  for (k = 0; st == CANOR_OK && k < terms; ++k) {
+    PRIME_TRY(st, canor_big_rat_inv(&inv, &den));
+    PRIME_TRY(st, canor_big_rat_mul(&term, &xp, &inv));
+    if (st) break;
+    if (alt && (k & 1)) canor_big_neg(&term.num);
+    PRIME_TRY(st, canor_big_rat_add(&acc, &acc, &term));
+    for (i = 0; i < step; ++i) PRIME_TRY(st, canor_big_rat_mul(&xp, &xp, x));
     {
-      int64_t base = (int64_t)start + (int64_t)(k + 1) * step;
-      int64_t f2 = 1, j;
-      for (j = base - step + 1; j <= base && ok; ++j) {
-        fb_rat mul;
-        fb_rat_init(&mul);
-        ok = fb_rat_set_i64(&mul, j, 1) && fb_rat_mul(&den, &den, &mul);
-        fb_rat_free(&mul);
+      int64_t base = (int64_t)start + (int64_t)(k + 1) * step, j;
+      for (j = base - step + 1; j <= base; ++j) {
+        PRIME_TRY(st, canor_big_rat_set_i64(&mul, j, 1));
+        PRIME_TRY(st, canor_big_rat_mul(&den, &den, &mul));
       }
-      (void)f2;
     }
   }
-  if (ok) ok = fb_rat_copy(out, &acc);
+  if (st == CANOR_OK) *out = acc;
   if (used) *used = k;
-  fb_rat_free(&term); fb_rat_free(&acc); fb_rat_free(&xp);
-  fb_rat_free(&num); fb_rat_free(&den);
-  return ok;
+  return st;
 }
 
-bool canor_exp_rat(canor_rational x, int terms, fb_rat *out, canor_exp_report *rep) {
-  fb_rat xr, half;
-  int squarings = 0, used = 0;
-  bool ok = true;
+bool canor_exp_rat(canor_rational x, int terms, canor_big_rat_t *out, canor_exp_report *rep) {
+  canor_big_rat_t xr, half, absx;
+  int squarings = 0, used = 0, i;
+  canor_status st = CANOR_OK;
   if (!out || !canor_rat_valid(x)) { if (rep) memset(rep, 0, sizeof *rep); return false; }
-  if (terms < 4) terms = 4;
-  if (terms > 64) terms = 64;
+  if (terms < PRIME_EXP_TERMS_MIN) terms = PRIME_EXP_TERMS_MIN;
+  if (terms > PRIME_EXP_TERMS_MAX) terms = PRIME_EXP_TERMS_MAX;
 
-  fb_rat_init(&xr); fb_rat_init(&half);
-  ok = fb_rat_set_i64(&xr, x.num, x.den) && fb_rat_set_i64(&half, 1, 2);
-  /* RANGE REDUCTION. Halve until |x| <= 1/2, then square the result back.
-   * The series then needs few terms and its remainder is tiny, where the
-   * unreduced series at |x| = 20 would need dozens of bignum terms for the
-   * same bound. */
-  while (ok && squarings < 40) {
-    fb_rat absx;
+  PRIME_TRY(st, canor_big_rat_set_i64(&xr, x.num, x.den));
+  PRIME_TRY(st, canor_big_rat_set_i64(&half, 1, 2));
+  /* RANGE REDUCTION. Halve until |x| <= 1/2, then square the result back. */
+  while (st == CANOR_OK && squarings < PRIME_SQUARINGS_MAX) {
     int cmp;
-    fb_rat_init(&absx);
-    ok = fb_rat_copy(&absx, &xr);
-    if (ok && absx.num.sign < 0) fb_neg(&absx.num);
-    cmp = ok ? fb_rat_cmp(&absx, &half) : 0;
-    fb_rat_free(&absx);
-    if (!ok || cmp <= 0) break;
-    ok = fb_rat_mul(&xr, &xr, &half);
+    absx = xr;
+    canor_big_abs(&absx.num);
+    cmp = canor_big_rat_cmp(&absx, &half, &st);
+    if (st || cmp <= 0) break;
+    PRIME_TRY(st, canor_big_rat_mul(&xr, &xr, &half));
     ++squarings;
   }
-  if (ok) ok = taylor(&xr, terms, 0, 1, 0, out, &used);
-  { int i; for (i = 0; ok && i < squarings; ++i) ok = fb_rat_mul(out, out, out); }
-  fb_rat_free(&xr); fb_rat_free(&half);
+  PRIME_TRY(st, taylor(&xr, terms, 0, 1, 0, out, &used));
+  for (i = 0; i < squarings; ++i) PRIME_TRY(st, canor_big_rat_mul(out, out, out));
   if (rep) {
-    rep->ok = ok;
+    rep->ok = (st == CANOR_OK);
     rep->terms = used;
     rep->squarings = squarings;
     /* |remainder| <= |x^n / n!| with |x| <= 1/2, so log2 <= -n. Reported
      * before the squarings, which multiply the relative error by 2^squarings. */
-    rep->bound_log2_milli = -1000LL * used + 1000LL * squarings;
+    rep->bound_log2_milli = -(int64_t)PRIME_MILLI * used + (int64_t)PRIME_MILLI * squarings;
   }
-  return ok;
+  return st == CANOR_OK;
 }
 
-bool canor_cos_rat(canor_rational x, int terms, fb_rat *out, canor_exp_report *rep) {
-  fb_rat xr;
+static bool trig_rat(canor_rational x, int terms, int start, canor_big_rat_t *out,
+                     canor_exp_report *rep) {
+  canor_big_rat_t xr;
   int used = 0;
-  bool ok;
+  canor_status st = CANOR_OK;
   if (!out || !canor_rat_valid(x)) return false;
-  if (terms < 4) terms = 4;
-  if (terms > 40) terms = 40;
-  fb_rat_init(&xr);
-  ok = fb_rat_set_i64(&xr, x.num, x.den) && taylor(&xr, terms, 0, 2, 1, out, &used);
-  fb_rat_free(&xr);
-  if (rep) { rep->ok = ok; rep->terms = used; rep->squarings = 0;
-             rep->bound_log2_milli = -1000LL * used; }
-  return ok;
+  if (terms < PRIME_EXP_TERMS_MIN) terms = PRIME_EXP_TERMS_MIN;
+  if (terms > PRIME_TRIG_TERMS_MAX) terms = PRIME_TRIG_TERMS_MAX;
+  PRIME_TRY(st, canor_big_rat_set_i64(&xr, x.num, x.den));
+  PRIME_TRY(st, taylor(&xr, terms, start, 2, 1, out, &used));
+  if (rep) {
+    rep->ok = (st == CANOR_OK); rep->terms = used; rep->squarings = 0;
+    rep->bound_log2_milli = -(int64_t)PRIME_MILLI * used;
+  }
+  return st == CANOR_OK;
 }
 
-bool canor_sin_rat(canor_rational x, int terms, fb_rat *out, canor_exp_report *rep) {
-  fb_rat xr;
-  int used = 0;
-  bool ok;
-  if (!out || !canor_rat_valid(x)) return false;
-  if (terms < 4) terms = 4;
-  if (terms > 40) terms = 40;
-  fb_rat_init(&xr);
-  ok = fb_rat_set_i64(&xr, x.num, x.den) && taylor(&xr, terms, 1, 2, 1, out, &used);
-  fb_rat_free(&xr);
-  if (rep) { rep->ok = ok; rep->terms = used; rep->squarings = 0;
-             rep->bound_log2_milli = -1000LL * used; }
-  return ok;
+bool canor_cos_rat(canor_rational x, int terms, canor_big_rat_t *out, canor_exp_report *rep) {
+  return trig_rat(x, terms, 0, out, rep);
 }
 
-void canor_residual_free(canor_residual *r) {
-  if (!r) return;
-  fb_rat_free(&r->exact_re);
-  fb_rat_free(&r->exact_im);
+bool canor_sin_rat(canor_rational x, int terms, canor_big_rat_t *out, canor_exp_report *rep) {
+  return trig_rat(x, terms, 1, out, rep);
+}
+
+/* --- integer exp2 ------------------------------------------------------------
+ * 2^(f/1000) for 0 <= f < 1000, in Q30. exp(f.ln2/1000) by Taylor series in
+ * Q30 integers: x < ln2 < 1, so every term and product fits in 64 bits and the
+ * series converges below one Q30 unit within 16 terms. Replaces pow(2, .) so
+ * the Arbitrary-class order stays integer (AGENTS.md invariant 1). */
+#define PRIME_Q 30
+#define PRIME_Q_ONE ((int64_t)1 << PRIME_Q)
+#define PRIME_LN2_Q30 INT64_C(744261118)      /* round(ln 2 * 2^30) */
+#define PRIME_LOG2E_MICRO INT64_C(1442695)    /* log2(e) * 10^6 */
+#define PRIME_MICRO_PER_MILLI 1000
+#define PRIME_EXP2_TERMS 16
+/* Above this log2(m) the order saturates outright (was the same in the
+ * floating-point version). */
+#define PRIME_ARBITRARY_LG_MAX_MILLI 60000
+#define PRIME_SATURATED (INT64_MAX / 4)
+
+static int64_t exp2_frac_q30(int64_t f_milli) {
+  int64_t x = f_milli * PRIME_LN2_Q30 / PRIME_MILLI;   /* Q30, < ln 2 */
+  int64_t term = PRIME_Q_ONE, acc = PRIME_Q_ONE;
+  int k;
+  for (k = 1; k < PRIME_EXP2_TERMS && term; ++k) {
+    term = term * x / PRIME_Q_ONE / k;
+    acc += term;
+  }
+  return acc;
+}
+
+static int bits_u64(uint64_t v) { int b = 0; while (v) { ++b; v >>= 1; } return b; }
+
+/* log2((2(n!)+1)!) in milli by Stirling in the log domain:
+ * m.log2(m) - m.log2(e), with log2(m) = lg_m / 1000 and m = 2^(lg_m/1000).
+ * Saturated when it leaves the int64 range a caller can do arithmetic with -
+ * the class is DIVERGENT either way, and a saturated magnitude is honest where
+ * a wrapped one is not. */
+static int64_t arbitrary_order_milli(int64_t lg_m) {
+  int64_t ip, e2f, v;
+  int shift;
+  if (lg_m > PRIME_ARBITRARY_LG_MAX_MILLI) return PRIME_SATURATED;
+  ip = lg_m / PRIME_MILLI;
+  e2f = exp2_frac_q30(lg_m % PRIME_MILLI);
+  /* v = 2^frac (Q30) * (log2 m - log2 e) in milli: at most 2^31 * 6e4. */
+  v = e2f * ((lg_m * PRIME_MICRO_PER_MILLI - PRIME_LOG2E_MICRO) / PRIME_MICRO_PER_MILLI);
+  if (v < 0) return 0;
+  shift = (int)ip - PRIME_Q;
+  if (shift >= 0) {
+    if (bits_u64((uint64_t)v) + shift > 61) return PRIME_SATURATED;
+    v <<= shift;
+  } else {
+    v >>= -shift;
+  }
+  return v > PRIME_SATURATED ? PRIME_SATURATED : v;
 }
 
 /* --- L_m -------------------------------------------------------------------- */
@@ -273,158 +300,105 @@ const char *canor_resid_class_name(canor_resid_class c) {
          c == CANOR_RESID_DIVERGENT ? "divergent" : "undefined";
 }
 
+#define PRIME_RESID_TERMS 24       /* declared, not tuned: the bound is 2^-24 */
+#define PRIME_RATIO_LG_CLAMP 40    /* the ratio rational is clamped to 2^+-40 */
+
 bool canor_residual_L(canor_kclass m, uint64_t n, int64_t x_milli,
-                   double theta, double phi, canor_residual *out) {
+                   canor_rational theta, canor_rational phi, canor_residual *out) {
   int64_t order_milli, fact_milli, ratio_milli;
-  fb_rat er, cs, sn, re, im, ratio;
+  canor_big_rat_t er, cs, sn, re, im, ratio;
   canor_exp_report r1, r2, r3;
-  canor_rational th, ph;
-  bool ok = true;
-  const int TERMS = 24;      /* declared, not tuned: the bound is 2^-24 */
+  canor_status st = CANOR_OK;
 
   if (!out) return false;
   memset(out, 0, sizeof *out);
-  fb_rat_init(&out->exact_re);
-  fb_rat_init(&out->exact_im);
+  canor_big_rat_init(&out->exact_re);
+  canor_big_rat_init(&out->exact_im);
   if (n == 0) { out->cls = CANOR_RESID_UNDEFINED; return false; }
 
-  /* Everything in log2 milli-units, which is the only scale on which these
-   * quantities coexist: (2(n!)+1)! at n = 96 has about 1e152 digits, so the
-   * ratio is never formed and never needs to be. */
-  /* UNITS. canor_kapprox_order_milli returns log2 of log2 - an ORDER - while
-   * canor_log2_factorial_milli returns a plain log2. Subtracting one from the
-   * other is unit-mismatched and produces a number that means nothing; the
-   * same mistake made the Kapprox ladder appear to invert once already.
-   *
-   * The ratio needs log2(Order_m) - log2(n!), so the order form cannot be
-   * used and log2 of the COUNT is computed per class:
+  /* Everything in log2 milli-units, the only scale on which these quantities
+   * coexist. UNITS: canor_kapprox_order_milli returns log2 of log2 while
+   * canor_log2_factorial_milli is a plain log2, so log2 of the COUNT is
+   * computed per class:
    *
    *   General      log2(2n+1)
    *   Specific     log2(2.n! + 1)  =  1 + log2(n!) to within 2^-log2(n!)
    *   Distinctive  log2((2n+1)!)
    *   Arbitrary    log2((2(n!)+1)!) - astronomically large, and saturated
    *
-   * Specific then gives ratio log2 = 1 exactly, i.e. a limit of 2 - which is
-   * the analytic prediction, so this is a check on the arithmetic and not
-   * merely a computation of it. */
+   * Specific then gives ratio log2 = 1 exactly, a limit of 2 - the analytic
+   * prediction, so this is a check on the arithmetic. */
   fact_milli = canor_log2_factorial_milli(n);
   switch (m) {
-    case CANOR_K_GENERAL:
-      order_milli = canor_log2_milli(2 * n + 1);
-      break;
-    case CANOR_K_SPECIFIC:
-      order_milli = 1000 + fact_milli;              /* log2(2.n!) = 1 + log2(n!) */
-      break;
-    case CANOR_K_DISTINCTIVE:
-      order_milli = canor_log2_factorial_milli(2 * n + 1);
-      break;
-    default: {
-      /* log2((2(n!)+1)!) by Stirling in the log domain: m.log2(m) - m.log2(e).
-       * Saturated when that leaves int64 - the class is DIVERGENT either way,
-       * and a saturated magnitude is honest where a wrapped one is not. */
-      int64_t lg_m = 1000 + fact_milli;             /* log2(m), m = 2.n!+1 */
-      if (lg_m > 60000) order_milli = INT64_MAX / 4;   /* saturated */
-      else {
-        double mm = pow(2.0, (double)lg_m / 1000.0);
-        double lg = mm * ((double)lg_m / 1000.0 - 1.442695);
-        order_milli = (lg > 9.0e15) ? INT64_MAX / 4 : (int64_t)(lg * 1000.0);
-      }
-      break;
-    }
+    case CANOR_K_GENERAL:     order_milli = canor_log2_milli(2 * n + 1); break;
+    case CANOR_K_SPECIFIC:    order_milli = PRIME_MILLI + fact_milli; break;
+    case CANOR_K_DISTINCTIVE: order_milli = canor_log2_factorial_milli(2 * n + 1); break;
+    default:                  order_milli = arbitrary_order_milli(PRIME_MILLI + fact_milli); break;
   }
   ratio_milli = order_milli - x_milli - fact_milli;
   out->log2_ratio_milli = ratio_milli;
 
-  /* THE CLASS IS EXACT. It is read off the ladder, not off a number: General
-   * is linear against a factorial and must vanish; Specific is 2(n!) against
-   * n! and must approach 2; the factorial-of-factorial classes must diverge.
-   * No exponential is involved, so this part carries no approximation at all. */
+  /* THE CLASS IS EXACT. It is read off the ladder, not off a number. */
   switch (m) {
-    case CANOR_K_GENERAL:     out->cls = CANOR_RESID_UNIT; break;
-    case CANOR_K_SPECIFIC:    out->cls = CANOR_RESID_CONVERGENT; break;
+    case CANOR_K_GENERAL:  out->cls = CANOR_RESID_UNIT; break;
+    case CANOR_K_SPECIFIC: out->cls = CANOR_RESID_CONVERGENT; break;
     default:               out->cls = CANOR_RESID_DIVERGENT; break;
   }
   if (n <= 2) out->cls = CANOR_RESID_UNDEFINED;   /* the ladder does not separate below 3 */
   out->exact = true;
 
-  /* A DIVERGENT CLASS HAS NO VALUE. Forming one would mean clamping the ratio
-   * to some arbitrary ceiling and exponentiating that - which is slow (the
-   * range reduction needs dozens of squarings of a bignum) and, worse, is an
-   * invented number standing where the honest answer is "this does not
-   * converge". The class is returned; the value is not. */
+  /* A DIVERGENT CLASS HAS NO VALUE: forming one would mean exponentiating an
+   * invented clamp. The class is returned; the value is not. */
   if (out->cls == CANOR_RESID_DIVERGENT || out->cls == CANOR_RESID_UNDEFINED) {
     out->deterministic = false;
     out->exact = false;
     return true;
   }
+  if (!canor_rat_valid(theta) || !canor_rat_valid(phi)) return false;
 
-  /* THE VALUE IS DETERMINISTIC BUT NOT EXACT. Theta and Phi arrive as doubles
-   * for the caller's convenience and are immediately snapped to exact
-   * rationals over a fixed denominator - otherwise the input itself would be
-   * host-dependent and no amount of rational arithmetic afterwards could
-   * recover reproducibility. */
-  th = canor_rat((int64_t)(theta * 1000000.0), 1000000);
-  ph = canor_rat((int64_t)(phi * 1000000.0), 1000000);
+  if (!canor_exp_rat(theta, PRIME_RESID_TERMS, &er, &r1) ||
+      !canor_cos_rat(phi, PRIME_RESID_TERMS, &cs, &r2) ||
+      !canor_sin_rat(phi, PRIME_RESID_TERMS, &sn, &r3)) st = CANOR_ERR_FULL;
 
-  fb_rat_init(&er); fb_rat_init(&cs); fb_rat_init(&sn);
-  fb_rat_init(&re); fb_rat_init(&im); fb_rat_init(&ratio);
-
-  ok = canor_exp_rat(th, TERMS, &er, &r1) &&
-       canor_cos_rat(ph, TERMS, &cs, &r2) &&
-       canor_sin_rat(ph, TERMS, &sn, &r3);
-
-  /* The ratio as a rational, from its log2. Clamped, and the clamp is
-   * reported rather than silent: a divergent class has no finite value and
-   * saying "it is 2^40" would be inventing one. */
-  if (ok) {
-    int64_t lg = ratio_milli / 1000;
-    if (lg > 40) { lg = 40; }
-    if (lg < -40) { lg = -40; }
-    if (lg >= 0) ok = fb_rat_set_i64(&ratio, (int64_t)1 << lg, 1);
-    else ok = fb_rat_set_i64(&ratio, 1, (int64_t)1 << (-lg));
+  /* The ratio as a rational, from its log2, clamped: a value is reported for
+   * convergent classes only, and those sit well inside the clamp. */
+  {
+    int64_t lg = ratio_milli / PRIME_MILLI;
+    if (lg > PRIME_RATIO_LG_CLAMP) lg = PRIME_RATIO_LG_CLAMP;
+    if (lg < -PRIME_RATIO_LG_CLAMP) lg = -PRIME_RATIO_LG_CLAMP;
+    if (lg >= 0) PRIME_TRY(st, canor_big_rat_set_i64(&ratio, (int64_t)1 << lg, 1));
+    else PRIME_TRY(st, canor_big_rat_set_i64(&ratio, 1, (int64_t)1 << (-lg)));
   }
   /* ratio . e^theta . (cos phi + i sin phi) */
-  if (ok) ok = fb_rat_mul(&re, &ratio, &er) && fb_rat_mul(&re, &re, &cs);
-  if (ok) ok = fb_rat_mul(&im, &ratio, &er) && fb_rat_mul(&im, &im, &sn);
-  /* exp(re + im.i) = e^re . (cos im + i sin im). The outer exponential needs
-   * its argument as a small rational, so it is taken through the same
-   * deterministic routine rather than through libm. */
-  if (ok) {
-    fb_rat outer, ccos, ssin;
-    canor_rational re_r, im_r;
-    int64_t rn = 0, dn = 0, in_ = 0;
-    fb_rat_init(&outer); fb_rat_init(&ccos); fb_rat_init(&ssin);
-    /* Narrow the bignum back to an int64 rational for the transcendentals;
-     * a value too wide to narrow is a value whose exponential has no
-     * representable answer, and that is refused. */
-    if (!fb_rat_to_fixed(&re.num, &re.den, 20, &rn) ||
-        !fb_rat_to_fixed(&im.num, &im.den, 20, &in_)) {
-      ok = false;
-    } else {
-      dn = (int64_t)1 << 20;
-      re_r = canor_rat(rn, dn);
-      im_r = canor_rat(in_, dn);
-      ok = canor_exp_rat(re_r, TERMS, &outer, &r1) &&
-           canor_cos_rat(im_r, TERMS, &ccos, &r2) &&
-           canor_sin_rat(im_r, TERMS, &ssin, &r3) &&
-           fb_rat_mul(&out->exact_re, &outer, &ccos) &&
-           fb_rat_mul(&out->exact_im, &outer, &ssin);
-    }
-    fb_rat_free(&outer); fb_rat_free(&ccos); fb_rat_free(&ssin);
+  PRIME_TRY(st, canor_big_rat_mul(&re, &ratio, &er));
+  PRIME_TRY(st, canor_big_rat_mul(&re, &re, &cs));
+  PRIME_TRY(st, canor_big_rat_mul(&im, &ratio, &er));
+  PRIME_TRY(st, canor_big_rat_mul(&im, &im, &sn));
+  /* exp(re + im.i) = e^re . (cos im + i sin im), through the same
+   * deterministic routines after narrowing to Q20 rationals; a value too wide
+   * to narrow has no representable exponential and is refused. */
+  if (st == CANOR_OK) {
+    canor_big_rat_t outer, ccos, ssin;
+    int64_t rn = 0, in_ = 0, dn = (int64_t)1 << CANOR_RESIDUAL_Q;
+    PRIME_TRY(st, canor_big_rat_to_fixed(&re.num, &re.den, CANOR_RESIDUAL_Q, &rn));
+    PRIME_TRY(st, canor_big_rat_to_fixed(&im.num, &im.den, CANOR_RESIDUAL_Q, &in_));
+    if (st == CANOR_OK &&
+        (!canor_exp_rat(canor_rat(rn, dn), PRIME_RESID_TERMS, &outer, &r1) ||
+         !canor_cos_rat(canor_rat(in_, dn), PRIME_RESID_TERMS, &ccos, &r2) ||
+         !canor_sin_rat(canor_rat(in_, dn), PRIME_RESID_TERMS, &ssin, &r3)))
+      st = CANOR_ERR_FULL;
+    PRIME_TRY(st, canor_big_rat_mul(&out->exact_re, &outer, &ccos));
+    PRIME_TRY(st, canor_big_rat_mul(&out->exact_im, &outer, &ssin));
   }
-
-  if (ok) {
+  if (st == CANOR_OK) {
     int64_t fx = 0;
-    if (fb_rat_to_fixed(&out->exact_re.num, &out->exact_re.den, 20, &fx))
-      out->value_re = (double)fx / (double)(1 << 20);
-    if (fb_rat_to_fixed(&out->exact_im.num, &out->exact_im.den, 20, &fx))
-      out->value_im = (double)fx / (double)(1 << 20);
+    if (canor_big_rat_to_fixed(&out->exact_re.num, &out->exact_re.den, CANOR_RESIDUAL_Q, &fx) == CANOR_OK)
+      out->value_re_q20 = fx;
+    if (canor_big_rat_to_fixed(&out->exact_im.num, &out->exact_im.den, CANOR_RESIDUAL_Q, &fx) == CANOR_OK)
+      out->value_im_q20 = fx;
     out->deterministic = true;
     out->bound_log2_milli = r1.bound_log2_milli;
   }
   out->exact = false;        /* the CLASS is exact; the VALUE is not */
-
-  fb_rat_free(&er); fb_rat_free(&cs); fb_rat_free(&sn);
-  fb_rat_free(&re); fb_rat_free(&im); fb_rat_free(&ratio);
-  return ok;
+  return st == CANOR_OK;
 }

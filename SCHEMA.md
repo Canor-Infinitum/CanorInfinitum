@@ -99,7 +99,25 @@ The trifectas are the lexicographically first spread of PG(3,2). All 56 spreads 
 1. Hypercomplex hypersurreal numbers. 2. Pure tensors (tensor-network contractions, HaPPY codes). 3. Aether Propositum structures (Elementary, Unique, Composite and Unknown tree compositions). 4. Symbolicals: Real (numeric), Imaginary (permutohedron) and Complex (tensorial) expressions and equations. X. Canorum (Canor-specific protocols, waveforms, architectures and system interfaces).
 
 ## Grammar
-`atoms.ebnf` (60 productions, Appendix A of Working Draft v1) is located at [CanorLinguae/grammar/atoms.ebnf](CanorLinguae/grammar/atoms.ebnf).
+`atoms.ebnf` (60 productions, Appendix A of Working Draft v1) is located at [CanorLinguae/grammar/atoms.ebnf](CanorLinguae/grammar/atoms.ebnf). It is amended by user decision on 2026-10-20: `( "::", TEMPLATE )?` is optional and `.` is a `HEADER_BASE_CHAR`.
+Default semantics (proposal) are defined in [default.fwp](default.fwp) and [settings/*.fws](settings/), and explained in [SEMANTICS.md](CanorLinguae/grammar/SEMANTICS.md). The settings can override everything except `atoms.ebnf`.
+
+## Names (workspace-wide) — **PINNED**
+Every Canor name follows one convention: definition headers (each dotted segment), template names, keys, and `.ini` variables. The underscores give the class:
+
+| Form | Class | Use |
+|---|---|---|
+| `__name__` | Global | Internal only. It has the same value in every locale. |
+| `_name_` | Scoped | Internal / project |
+| `__name` | Limited | Project only |
+| `_name` | Custom | Any custom use |
+| `name` | Public | Public / general |
+
+- `name` starts with a letter and ends with a letter or digit, and its inner characters are letters, digits, or `_`. The underscore classes are lowercase ASCII, and Public names may use upper case.
+- Any other form (`__x_`, `___x`, `_x__`, `x_`) is diagnosed `CANOR_ERR_ARGS`, never ignored.
+- Names compare case-insensitively. Two names that differ only in case in one scope are diagnosed. Names are never translated.
+- **Sigil position:** where a sigil is expected (the start of a definition or template), the first `_` is always the generic sigil, and the name follows it. So `_polymorphic` is generic `polymorphic`, `___x__` is generic `__x__`, and `&__x__` is the Global `__x__` under `&`.
+- Header tags (`zh-Hant`, `soul-ijk`, `v2`) are not names, and they may contain `-`.
 
 ## Interchange: United™
 A `.fwo` carries distinct JSON and XML artifacts, embedded or referenced by path plus checksum. The canonical digest covers the body, ordered manifest, payloads, and checksums. TODO: digest algorithm (profile-defined).

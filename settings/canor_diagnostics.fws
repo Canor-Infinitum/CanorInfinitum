@@ -1,0 +1,6 @@
+@diag.syntax(code=CANOR_ERR_ARGS, value=-1);
+@diag.range(code=CANOR_ERR_RANGE, value=-2);
+@diag.full(code=CANOR_ERR_FULL, value=-3);
+@diag.open(code=CANOR_ERR_NOT_CLOSED, value=-4);
+@diag.undefined(code=CANOR_ERR_UNDEFINED, value=-5);
+@diag.missing(code=CANOR_ERR_NOT_FOUND, value=-6);

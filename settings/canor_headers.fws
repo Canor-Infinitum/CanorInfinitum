@@ -1,0 +1,7 @@
+@header.base{letters, digits, "_", "."};
+@header.file(fwh=declaration, fwb=body);
+@tag.locale(form={en, ru, fr, "zh-Hant", la}, default=en);
+@tag.version(form="v<N>", default=v1);
+@tag.purity(form={pure, effect}, default=pure);
+@tag.summation(form={sum, nosum}, default=sum);
+@tag.soul(form="soul-<NAME>");

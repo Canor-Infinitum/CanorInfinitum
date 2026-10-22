@@ -7,7 +7,7 @@
    - "_" is not a name start (NAME_START = UNICODE_LETTER).
    OPEN: "_" still opens ROOT_PATH_MARKER; a path beginning "_" is a root marker. *)
 ATOM_FILE = { ATOM_DEFINITION } ;
-ATOM_DEFINITION = ATOM_PATH, HEADER, "::", TEMPLATE, PARAMETER_GROUP?, ( ":", ATOM_VALUE )?, ";" ;
+ATOM_DEFINITION = ATOM_PATH, HEADER, ( "::", TEMPLATE )?, PARAMETER_GROUP?, ( ":", ATOM_VALUE )?, ";" ;
 ATOM_PATH = ROOT_PATH | TYPED_ATOM, { SELECTOR, TYPED_ATOM } ;
 ROOT_PATH = ROOT_PATH_MARKER, (TYPED_ATOM, { SELECTOR, TYPED_ATOM })? ;
 ROOT_PATH_MARKER = "&" | "%" | "$" | "#" | "@" | "?" | "!" | "^" | "~" | "/" | "\\" | "_" ;
@@ -28,7 +28,7 @@ TEX_COMMAND = "\\", NAME ;
 HEADER = HEADER_BASE, { " ", HEADER_EXTENSION } ;
 HEADER_BASE = HEADER_BASE_CHAR, { HEADER_BASE_CHAR } ;
 HEADER_EXTENSION = HEADER_EXTENSION_CHAR, { HEADER_EXTENSION_CHAR } ;
-HEADER_BASE_CHAR = ASCII_LETTER | DIGIT | "_" ;
+HEADER_BASE_CHAR = ASCII_LETTER | DIGIT | "_" | "." ;
 HEADER_EXTENSION_CHAR = HEADER_BASE_CHAR | "-" ;
 TEMPLATE = TEMPLATE_CHAR, { TEMPLATE_CHAR } ;
 TEMPLATE_CHAR = UNICODE_LETTER | DIGIT | "&" | "%" | "$" | "#" | "@" | "?" | "!" | "^" | "~" | "/" | "\\" | "_" ;

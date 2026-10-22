@@ -1,0 +1,6 @@
+@group.paren(open="(", close=")", symmetry=symmetric, order=free);
+@group.bracket(open="[", close="]", symmetry=antisymmetric, order=signed);
+@group.brace(open="{", close="}", symmetry=unknown, order=written);
+@group.braket(open="<", sep="|", close=">", symmetry=declared, order=tensorial);
+@group.delimiter:",";
+@group.params(bare=fill_in_order);

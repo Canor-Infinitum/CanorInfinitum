@@ -30,7 +30,7 @@ file(GLOB CANOR_CORE_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/c
 add_library(canor_core STATIC ${CANOR_CORE_SOURCES})
 target_include_directories(canor_core PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/..)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 target_compile_options(canor_core PRIVATE ${CANOR_WARNINGS})
 
 # The timing library's property type is fixed at compile time, so the interval

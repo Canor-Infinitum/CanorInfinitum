@@ -58,6 +58,9 @@ dkms.conf
 build/
 build-*/
 
-# Agent tool backups and packaged skill archives
+# Agent tool backups, worktrees, and packaged skill archives
 .agentic/
+.claude/worktrees/
+**/.claude/worktrees/
 .claude/skills.zip
+**/.claude/skills.zip

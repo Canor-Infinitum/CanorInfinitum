@@ -1,1 +1,2 @@
+Flow.grammar grammar :: AtomsEbnf : "grammar/atoms.ebnf";
 Flow.identity header :: Flow : "Quaternionic atom sequences under atoms.ebnf";

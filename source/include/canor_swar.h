@@ -4,7 +4,7 @@
 /* SWAR-SIMD macro library: SIMD-within-a-register lanes for Physical
  * Programming over exact integers and closed LO/HI integer intervals.
  *
- * Canor WD v1 §9 Aether mandates "Integer Programming with Interval
+ * Canor §10 Aether mandates "Integer Programming with Interval
  * Arithmetic ... throughout all of Canor", so every lane here is an exact
  * integer and every interval is a closed integer [lo, hi]. Results are
  * bit-identical on every host (AGENTS.md invariant 1).

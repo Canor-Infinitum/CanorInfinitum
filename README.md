@@ -11,7 +11,7 @@ Designed for mission-critical embedded systems and high-assurance distributed en
 
 | # | Subsystem | Architectural Role | Description |
 |---|---|---|---|
-| 1 | [CanorLinguae/](CanorLinguae/README.md) | **Language Suite (QGTC)** | A reactive, quantum-symbolic metaprogramming suite providing nine layered interoperability languages. |
+| 1 | [CanorLinguae/](CanorLinguae/README.md) | **Language Suite (QGTC)** | A reactive, quantum-symbolic metaprogramming suite of ten languages, Strategy™ through Aether™ IR. |
 | 2 | [CanorDatabasis/](CanorDatabasis/README.md) | **Database Layer (QGCT)** | The persistent invariant store isomorphic to CanorLinguae, maintaining communication contexts, state spaces, and tensor structures. |
 | 3 | [CarmenInstinctus/](CarmenInstinctus/README.md) | **Physical Model Layer** | Plug-and-play discrete relativity and multiform Unruh-Lorentzian frame models for physical simulation. |
 | 4 | [CanorInstinctivus/](CanorInstinctivus/README.md) | **Applied Integration** | Combines the language suite, database, and physical models into concrete operational workflows. |
@@ -47,6 +47,7 @@ cmake -S source -B build -G Ninja && cmake --build build && ctest --test-dir bui
 
 | File | Purpose |
 |---|---|
+| [docs/Canor.md](docs/Canor.md) | Project documentation and specification: the ten CanorLinguae languages, CanorDB, CarmenInstinctus, CanorInstinctivus |
 | [AGENTS.md](AGENTS.md) | Universal engineering rules and invariants for AI coding agents |
 | [CLAUDE.md](CLAUDE.md) | Claude Code-specific tool and project workflows |
 | [INSTRUCTIONS.md](INSTRUCTIONS.md) | GitHub Copilot instructions (mirrored to [.github/copilot-instructions.md](.github/copilot-instructions.md)) |
@@ -61,7 +62,7 @@ cmake -S source -B build -G Ninja && cmake --build build && ctest --test-dir bui
 
 ## Specifications
 
-The authoritative specification is this repository's Markdown documentation: [SCHEMA.md](SCHEMA.md), [AGENTS.md](AGENTS.md), [MEMORY.md](MEMORY.md), and [CONTEXT.md](CONTEXT.md). Section numbering (§0–§9) follows Canor Working Draft v1.
+The project specification is [docs/Canor.md](docs/Canor.md). Types, encodings and invariants are in [SCHEMA.md](SCHEMA.md), [AGENTS.md](AGENTS.md), [MEMORY.md](MEMORY.md), and [CONTEXT.md](CONTEXT.md). Section labels §1–§10 follow Canor.md: Strategy §1 through Aether §10.
 
 ## License
 

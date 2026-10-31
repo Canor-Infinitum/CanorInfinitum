@@ -77,6 +77,13 @@ Append-only. Format: `YYYY-MM-DD — Decision — Why — Source`.
     - `scene`'s α = 1/2 curve moved by ≤ 1e-5.
   - **Library fix found by the comparison:** the Mittag-Leffler stop test in `src/canor_poly.c` is now exact (the term truncates to zero in Q20) instead of a ±1-bit width estimate. This restores E_{1/4} at t = 4 (0.377376).
   - — User request. — `source/examples/canor_demo/`.
+- 2026-10-25 — **`docs/Canor.md` is the project documentation and specification.** It heads the authority list. A PINNED entry in SCHEMA.md stands until an entry here changes it. It was copied from the main checkout with formatting-only fixes (headings, a stray footnote marker, broken bold). — User direction, 2026-10-24.
+- 2026-10-25 — **Ten languages, Strategy first (supersedes the 2026-10-18 nine-language sequence):** 1 Strategy™, 2 Flow™, 3 MetaFlow™, 4 Action™, 5 Soul™, 6 Maneuver™, 7 United™, 8 Elite™, 9 Follower™ / Carmen™ Interlingua, 10 Aether™ IR. — Canor.md.
+- 2026-10-25 — **Section labels follow the 1–10 order** in every tracked file and skill, cited as `Canor §N Name` (SCHEMA.md "Section labels"). Old Working Draft v1 label §n (n = 1…9) is now §(n+1), and the old §0 is Strategy §1. Z-Notation draft and CanorDB section numbers are unchanged. **Entries above this one keep their original labels.** — User decision.
+- 2026-10-25 — **IMAG re-pinned: every trifecta is one of Hamilton's quaternionic trifectas (PINNED change).** Names and indices are unchanged. The product is Cayley–Dickson doubling over pinned coordinates: one 0, i 1, j 2, k 3, l 4, m 8, n 12, o 5, p 10, q 15, r 6, s 11, t 13, e 7, f 9, g 14. These are the lexicographically first spread of PG(3,2), and all 56 spreads lie in one GL(4,2) orbit, so the choice is a relabelling. (i,j,k) with l, o, r, e spans the octonions. Before this, only (i,j,k) closed (l·m was +i), because since the 2026-10-18 port the trifectas sat on consecutive Cayley–Dickson indices. Adds `canor_imag_cd_index` / `canor_imag_from_cd_index`; `canor_excite` works in coordinates. New tests: Hamilton rules per trifecta, octonion non-associativity, sedenion zero divisors. — User approval. — `canor_core.c`, SCHEMA.md "IMAG basis".
+- 2026-10-25 — **`*.error` files are Aether diagnostic output names, not a pinned extension.** — User decision.
+- 2026-10-25 — **Follower code blocks use the Canor.md pipe-dot framing `| ... .`**, replacing the skills' `|.lang ... .|`. The block's language comes from its `lang=` attribute. — User decision.
+- 2026-10-25 — **The core keeps the integer parts; the rest is profile-defined.** In the core: Hilbert ordering, quadtrees, mipmaps and checksums (Soul) and their like. Profile-defined: diffusion transformers, MCMC, and agent- or LLM-guided rewriting. Agent and MCMC outputs enter as recorded inputs with seed and provenance. Reaching a configured limit is reported, never silently cut. — User decision. — AGENTS.md invariant 8, DESIGN.md.
 
 ## Canonical Module Mapping (Approved)
 | Module Name | Target Header / Source | Destination |
@@ -91,7 +98,7 @@ Append-only. Format: `YYYY-MM-DD — Decision — Why — Source`.
 | Dimensions, Scales & Aggregates | `canor_dim`, `canor_scale`, `canor_agg`, `canor_fw` | `CanorLinguae` (Aether IR) |
 | Symbols, Polynomials & Algebra | `canor_sym`, `canor_poly`, `canor_alg` | `CanorDatabasis` (Symbolicals) |
 | Flow, RGB & Hypervectors | `canor_flow.h/.c` | `CanorLinguae` |
-| Elite Assembler & Diffeomorphic Basis | `canor_elite.h/.c` | `CanorLinguae` (Elite §7) |
+| Elite Assembler & Diffeomorphic Basis | `canor_elite.h/.c` | `CanorLinguae` (Elite §8) |
 | Store & Indexing | `canor_index.h/.c` | `Canor/CanorRepositorium` |
 | Strategy, Excitation & ORE | `canor_strategy`, `canor_excite`, `canor_ore` | `CanorInstinctivus` |
 | Golay Coding | `canor_golay.h/.c` | `Canor/CanorInfinitum` |
@@ -101,7 +108,7 @@ Append-only. Format: `YYYY-MM-DD — Decision — Why — Source`.
 
 ## Core Implementation Invariants
 - **No floating point.** Exactness is the design basis, and the draft mandates integer + interval arithmetic.
-- **IMAG = 5 trifectas (16, sedenions).** 13 elements has no Cayley–Dickson closure, so 4 trifectas is refused at init. The table is computed, not hand-written.
+- **IMAG = 5 trifectas (16, sedenions), each one of Hamilton's quaternionic trifectas.** 13 elements has no Cayley–Dickson closure, so 4 trifectas is refused at init. The table is computed from the pinned 16-entry coordinate map, not hand-written.
 - **Hypervectors are packed 64-bit words** (1024 bits), with integer similarity in `[0, CANOR_ONE]`.
 - **FlowValue bit encoding is pinned:** `00 NegZero, 01 NegOne, 10 PosZero, 11 PosOne`.
 - **The conformance check must actually decode.** The lossless path runs over RGB strings. A FLOW id is a non-invertible hash.
@@ -112,7 +119,7 @@ Append-only. Format: `YYYY-MM-DD — Decision — Why — Source`.
 - [x] Build system: Both CMake and `west` (Zephyr) confirmed.
 - [x] Module placements confirmed and approved.
 - [ ] CanorInstinctivus draft elaboration (pending further theoretical notes from draft `[...]`).
-- [x] Interoperability language sequence: 1. Flow ... 8. Carmen, 9. Aether confirmed.
+- [x] Language sequence: 1. Strategy … 10. Aether (2026-10-25, Canor.md; supersedes 1. Flow … 9. Aether).
 - [x] Representations, MetaFlow complex-fractal excitation, Strategy ↔ Ore binding, Soul category: decided 2026-10-21 (entries above).
 - [ ] Digest algorithm: profile-defined; being specified in the United/Elite session. Generator writes `unset`.
 - [ ] Soul grayscale conversion and realification/complexification form: profile-defined, `unset`.
@@ -122,8 +129,14 @@ Append-only. Format: `YYYY-MM-DD — Decision — Why — Source`.
 - [ ] Elite: digest and signature algorithms, trust roots, revocation, signature lifecycle (profile-defined; `canor_elite` calls the profile's pure digest/verify functions and reports UNDEFINED while unset).
 - [ ] Elite: error-category taxonomy (anti-cheat, anti-malware / anti-virus, …) and each category's metric, scale and bound; metrics other than `gram-linf` are measured outside the core.
 - [ ] Elite: certification rule. Current: recompute, then E_recomputed ⊆ E_claimed ⊆ A ⊆ B. Alternative: a tolerance band.
-- [ ] Elite: candidate-ordering schema beyond the declared lexicographic order, and the Aether §9 latency/jitter field per branch traversal (needs `canor_timing`).
+- [ ] Elite: candidate-ordering schema beyond the declared lexicographic order, and the Aether §10 latency/jitter field per branch traversal (needs `canor_timing`). Canor.md §8 puts the interval timing field in Elite's header.
 - [x] Elite surface syntax and nested replacement: freeform line-based rules (2026-10-20).
 - [x] Action source spelling: `L = R (mod N)` inside a `%` modulation is the congruence form (2026-10-22, user confirmed).
 - [x] `/elite` skill aligned with the freeform Elite syntax: `.fwh` = Canor header (provenance, basis, tooling, direction, limit), `.fwb` = pure Elite source, since Elite has no comment syntax (2026-10-22).
 - [x] Language skills (`/flow` … `/aether`) regenerated from one shared template (2026-10-22). Kept: the decided facts merged in by other sessions (representations, categories, Ore Strategies, MetaFlow fractal string, enumeration sizes, `canor_field3_t`, complementary languages) plus the pinned `.ini` key classes. Dropped: platform asides (Zephyr / sandbox / WASM paragraphs). Restored: the user's original `/aether` intent questions. The skills are the language templates for the `*-intent` rewrite.
+- [ ] Timing prerequisite scope: Canor.md requires the Aether timing suite in "all instantiated code blocks". Is that CanorLinguae `.fwh`/`.fwb` blocks only, or the C core too? Also, `CANOR_TIMING_INTERVAL` defaults to 0 (27 scalars), but Canor.md describes LO/HI interval fields.
+- [ ] Soul permutations MLO and MRO (Canor.md §5): meaning not yet defined.
+- [ ] Ether™ (Canor.md §10 "Ether™ / Aether™ IR"): its relation to Aether™ is not yet recorded.
+- [ ] Flow scripts (Canor.md §2): `.` as a subscript and `'` as a superscript marker collide with atoms.ebnf, where both are SELECTOR. Whitespace as lexical metadata has no grammar rule yet.
+- [ ] `/strategy` skill: Strategy §1 has no skill yet; `/canor-infinitum` routes Strategy through `/flow`.
+- [ ] `canor_demo` outputs that print IMAG products, groupings or spreads change with the 2026-10-25 IMAG re-pin. Checked 2026-10-31 against the ported demo: `hp4` is unchanged, `excite` output changes, and `sed2hp4` fails 1 of 6 checks because it XORs basis indices instead of `canor_imag_cd_index` coordinates. The core suite passes; the demo needs the coordinate fix.

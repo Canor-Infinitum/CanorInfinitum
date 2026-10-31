@@ -20,14 +20,15 @@
 |---|---|
 | **QGTC** | **Quantum Gravity Turing-Computing:** The formal computational paradigm realized by the CanorLinguae language suite. |
 | **QGCT** | **Quantum Gravity Communication Theory:** The formal relational paradigm realized by CanorDatabasis (CanorDB), mathematically isomorphic to QGTC. |
-| **CanorLinguae** | The layered nine-language interoperability suite: Flow, MetaFlow, Action, Soul, Maneuver, United, Elite, Carmen Interlingua, and Aether IR. |
+| **CanorLinguae** | The ten-language suite ([docs/Canor.md](docs/Canor.md)): Strategy, Flow, MetaFlow, Action, Soul, Maneuver, United, Elite, Follower / Carmen Interlingua, and Aether IR (§1–§10, in that order). |
 | **CanorDatabasis / CanorDB** | The persistent database repository storing communication contexts, invariant boundaries, and structured tensor states. |
-| **CarmenInstinctus** | The physical model layer implementing discrete quantum relativity (Q-RT) and multiform Unruh-Lorentzian frames. |
-| **CanorInstinctivus** | The unified framework combining CanorLinguae, CanorDB, and CarmenInstinctus into concrete computational applications. |
+| **CarmenInstinctus** | The physical model layer implementing discrete quantum relativity (Q-RT) and interpolated Unruh-Lorentzian frames, with Selmer–Lie differential brackets under DQG. |
+| **CanorInstinctivus** | The project-specific runtime combining CanorLinguae, CanorDB, and CarmenInstinctus into concrete computational applications. It prevents inter-agent communication failures, and agents repeating each other's work, across 96!-order permutohedrons. |
 | **CanorLingua / Repositorium / Infinitum** | Subprojects A, B, and C: Natural language processing / storage and learning runtime / hardware integration and core algorithms. |
+| **Strategy™** | Differential imaginary bases (`di … dg`), derived by MCMC structural extraction and projected by Cayley–Dickson construction from the 16-dimensional sedenions onto associative quaternionic caches (the Hamilton trifectas). |
 | **Flow™** | An immutable, ordered sequence of imaginary-base atoms. |
 | **Follow™** | The English locale mark of the overall protocol / project name. |
-| **Trifecta** | An ordered triple of atom names (e.g. `i,j,k`) forming a Hamilton-style imaginary basis. |
+| **Trifecta** | An ordered triple of atom names (e.g. `i,j,k`). Each pinned IMAG trifecta is one of Hamilton's quaternionic trifectas: `a·b = c`, `b·c = a`, `c·a = b`. |
 | **Soul™ Symbol** | An executable state representation produced by traversing a Flow under modular Action constraints. |
 | **United™** | The standard interchange language and `.fwo` compiled-object container. |
 | **Elite™** | A side-effect-free, branch-retaining pattern assembler using Assembly as its meta-language. |
@@ -40,7 +41,7 @@
 
 ## Authoritative Specifications
 
-- **Primary Authority:** This repository's Markdown documentation ([SCHEMA.md](SCHEMA.md), [AGENTS.md](AGENTS.md), [MEMORY.md](MEMORY.md), and this file). Language section labels (§1–§9) follow Canor Working Draft v1.
+- **Primary Authority:** [docs/Canor.md](docs/Canor.md) for the project and its ten languages, then this repository's Markdown documentation ([SCHEMA.md](SCHEMA.md) types, encodings and PINNED entries, [AGENTS.md](AGENTS.md) invariants, [MEMORY.md](MEMORY.md) decisions, and this file). Language section labels §1–§10 follow Canor.md (see SCHEMA.md "Section labels"). A PINNED entry stands until a MEMORY.md entry changes it.
 - **Historical Reference:** PDF design drafts (Working Draft v1, Conceptual Design, Z-Notation). All binding architectural decisions are recorded in [MEMORY.md](MEMORY.md).
 
 ## Implementation Status

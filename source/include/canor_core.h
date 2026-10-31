@@ -423,13 +423,18 @@ const char *canor_kclass_name(canor_kclass c);
  * =========================================================================== */
 
 /* Basis index 0..CANOR_IMAG_COUNT-1. 0 is `one`; the rest are the trifectas in
- * order. Under the default profile these are the sedenion units e0..e15.
+ * order. Under the default profile these are the sixteen sedenion units.
  *
  * Names are PINNED (SCHEMA.md "IMAG basis", MEMORY.md 2026-10-20):
  *   [one=0, (i,j,k)=1..3, (l,m,n)=4..6, (o,p,q)=7..9, (r,s,t)=10..12,
  *    (e,f,g)=13..15]
  * The four-trifecta list quoted at the top of this header is the reference
- * document's; the pinned naming supersedes its letters, not its indices. */
+ * document's; the pinned naming supersedes its letters, not its indices.
+ *
+ * Every trifecta (a,b,c) is one of Hamilton's quaternionic trifectas, PINNED
+ * (Canor §2 Flow, MEMORY.md 2026-10-25): a.b = c, b.c = a, c.a = b, and
+ * b.a = -c. A basis index is therefore not its Cayley-Dickson coordinate
+ * beyond i, j, k; canor_imag_cd_index gives the coordinate. */
 typedef uint8_t canor_imag;
 
 typedef struct {
@@ -447,6 +452,12 @@ canor_status canor_imag_mul(canor_imag a, canor_imag b, canor_imag *index, int *
 /* Conjugation: e0 is fixed, every other unit negates. */
 int canor_imag_conj_sign(canor_imag a);
 const char *canor_imag_name(canor_imag a);
+/* A unit's Cayley-Dickson coordinate, and back. In coordinates the product is
+ * e_x . e_y = +-e_(x XOR y), so code that reads units as vectors of F2^4 (lines,
+ * spreads, GL(4,2)) works through these. Both return -1 for a value outside the
+ * basis or before canor_imag_init. */
+int canor_imag_cd_index(canor_imag a);
+int canor_imag_from_cd_index(int cd);
 
 /* BASE - "strict double-linked-list of IMAGINARY nodes ... A permutation
  * group". Stored as an array with explicit prev/next indices: the document

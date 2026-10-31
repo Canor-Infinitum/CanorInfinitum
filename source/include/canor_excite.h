@@ -135,12 +135,11 @@ typedef struct { long pairs, unit_differs, weight_differs; } ex_distortion;
  * interchangeable - each answers a different question, so the caller has to
  * say which it means rather than inherit whichever the implementation picked.
  *
- *   EX_GROUP_INDEX       units 3t+1..3t+3, five disjoint triples. A labelling
- *                        convention. Separable as written; only T0 = {i,j,k}
- *                        closes under multiplication, so words over the other
- *                        four fold OUT of their own group. Use when the
- *                        components must be independently addressable and
- *                        closure is not required.
+ *   EX_GROUP_INDEX       units 3t+1..3t+3, the five pinned trifectas. Each is
+ *                        one of Hamilton's quaternionic trifectas (MEMORY.md
+ *                        2026-10-25), so the groups are disjoint AND close:
+ *                        under the pinned table this is a spread. Use when
+ *                        the components must be independently addressable.
  *
  *   EX_GROUP_QUATERNION  every triple (a,b,c) that actually spans a quaternion
  *                        subalgebra: a.b = +-c and cyclically. These OVERLAP -
@@ -149,8 +148,10 @@ typedef struct { long pairs, unit_differs, weight_differs; } ex_distortion;
  *                        for it. Use when each component must fold inside the
  *                        algebra it is written over.
  *
- *   EX_GROUP_FANO        the seven lines of the Fano plane over e1..e7, which
- *                        are exactly the quaternion triples of the octonions.
+ *   EX_GROUP_FANO        the seven lines of the Fano plane over the octonion
+ *                        units i, j, k, l, o, r, e (Cayley-Dickson coordinates
+ *                        1..7), which are exactly the quaternion triples of
+ *                        the octonions.
  *                        A partition of the 21 unordered pairs, though not of
  *                        the units. Use when the octonion structure itself is
  *                        the object.
@@ -162,13 +163,12 @@ typedef enum {
   EX_GROUP_QUATERNION = 1,
   EX_GROUP_FANO = 2,
   /* EX_GROUP_SPREAD  a PARTITION of e1..e15 into five quaternion triples:
-   *                  disjoint AND every group closes. Both properties at once,
-   *                  which the other three each provide only half of - index
-   *                  is disjoint but does not close, quaternion and fano close
+   *                  disjoint AND every group closes. Quaternion and fano close
    *                  but overlap. There are 56 such partitions; the one built
    *                  here is the lexicographically first, chosen so that the
    *                  grouping is a function of the multiplication table alone
-   *                  and not of a search order that might change. */
+   *                  and not of a search order that might change. Under the
+   *                  pinned Hamilton trifectas it equals EX_GROUP_INDEX. */
   EX_GROUP_SPREAD = 3
 } ex_grouping;
 
@@ -197,11 +197,13 @@ bool ex_distort(const ex_excitation *a, const ex_excitation *b, ex_distortion *o
  * SPREAD is a partition of the 15 into 5 pairwise disjoint lines. There are 56
  * of them - this code finds them rather than quoting the number.
  *
- * The automorphism group is GL(4,2) ~ A8, order 20160, acting on the unit
- * INDICES read as nonzero vectors of F2^4. That identification rests on
- * e_a . e_b = +-e_(a XOR b), which is a property of the Cayley-Dickson table
- * and is CHECKED before the group is used - if it failed, every orbit below
- * would be computed with the wrong group and still look plausible.
+ * The automorphism group is GL(4,2) ~ A8, order 20160, acting on the units'
+ * Cayley-Dickson COORDINATES (canor_imag_cd_index) read as nonzero vectors of
+ * F2^4. That identification rests on e_x . e_y = +-e_(x XOR y) in coordinates,
+ * which is a property of the Cayley-Dickson table and is CHECKED before the
+ * group is used - if it failed, every orbit below would be computed with the
+ * wrong group and still look plausible. Basis indices are not coordinates past
+ * k (the pinned Hamilton trifectas relabel them).
  *
  * Why the orbit split matters: it says how many INEQUIVALENT spread groupings
  * exist. One orbit means every spread is a relabelling of every other, so
@@ -216,7 +218,8 @@ typedef struct {
   uint8_t line[EX_SPREADS_MAX][5][3];
 } ex_spread_set;
 
-/* True when e_a . e_b = +-e_(a XOR b) for every pair of imaginary units. */
+/* True when e_a . e_b = +-e_c with cd(c) = cd(a) XOR cd(b) for every pair of
+ * imaginary units, cd being canor_imag_cd_index. */
 bool ex_index_xor_holds(void);
 
 /* All spreads: partitions of the 15 units into 5 disjoint quaternion triples. */

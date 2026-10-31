@@ -1,4 +1,4 @@
-/* Property tests for canor_soul: the §4 count stream (n + 1 rows, decrements,
+/* Property tests for canor_soul: the §5 count stream (n + 1 rows, decrements,
  * duplicates counted, ring indices categorical, Order validation, auxiliary
  * channel), Action residues, and the four Real(s) x Base(s) representations.
  * The worked example is the /soul skill's: Flow i, j, k, i, L->R, mod 4. */

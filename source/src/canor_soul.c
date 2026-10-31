@@ -1,4 +1,4 @@
-/* canor_soul.c - count streams and their representations (Canor WD v1 §4 Soul).
+/* canor_soul.c - count streams and their representations (Canor §5 Soul).
  * See canor_soul.h for the definitions this implements. */
 
 #include "canor_soul.h"

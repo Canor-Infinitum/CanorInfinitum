@@ -2,7 +2,10 @@
 
 > Entries marked **PINNED** are specification. Changing one requires an entry in MEMORY.md.
 
-## File extensions (draft §9) — **PINNED**
+## Section labels ([docs/Canor.md](docs/Canor.md))
+Cite a language by its label, e.g. `Canor §5 Soul`: §1 Strategy™, §2 Flow™, §3 MetaFlow™, §4 Action™, §5 Soul™, §6 Maneuver™, §7 United™, §8 Elite™, §9 Follower™ / Carmen™ Interlingua, §10 Aether™ IR. Z-Notation draft sections (`Z §n`) and CanorDB sections (`CanorDB §3.2`) are separate numberings.
+
+## File extensions (Canor.md "Standard File Extensions") — **PINNED**
 | Ext | Definition |
 |---|---|
 | `.ini` | Canor™ settings |
@@ -11,6 +14,8 @@
 | `.fwh` | CanorLinguae source header |
 | `.fwb` | CanorLinguae source body |
 | `.fwo` | CanorLinguae compiled object (United™ container) |
+
+`*.error` files (Canor §10 Aether) are diagnostic output names, not a Canor extension.
 
 ## INI variables (`.ini`) — **PINNED**
 Each locale has its own `.ini` (e.g. `locales/Canor.ini`, locale `la`). Apart from `[Section]` headers, every line is a `key=value` pair, a comment or blank. A key's class comes from its underscores:
@@ -37,7 +42,7 @@ Each locale has its own `.ini` (e.g. `locales/Canor.ini`, locale `la`). Apart fr
 ## Flow / MetaFlow
 - **AtomUsage** = (atom name, ring index ∈ ℕ). An omitted index means 0.
 - **Flow** = length n plus a total function over `Index(n) = {0..n-1}`. Immutable. Duplicates are distinct positions.
-- **Trifecta** = an ordered triple of atom names.
+- **Trifecta** = an ordered triple of atom names. Each pinned IMAG trifecta `(a,b,c)` is one of Hamilton's quaternionic trifectas: `a·b = c`, `b·c = a`, `c·a = b` (see "IMAG basis").
 - **Order** = a bijection on `Index(n)`. The default is the identity (L→R). Its reverse is R→L.
 - **Count stream** = n + 1 vectors per trifecta.
 - **MetaFlow** ≤ 4 atoms. Default labels **PINNED**: `R` Reals, `G` Gaps, `B` Bases, `A` Auxiliaries.
@@ -45,7 +50,7 @@ Each locale has its own `.ini` (e.g. `locales/Canor.ini`, locale `la`). Apart fr
 - **Soul representations** (CanorDB §3.2), Reals = count-stream steps, Bases = IMAG units: Elementary (Real, Base), Unique (Real, Bases), Composite (Reals, Base), Unknown (Reals, Bases). Implemented in `canor_soul.h`.
 - **MetaFlow invocation** = complex-fractal string: R the remaining reals, G the gaps, B the scaling base and imaginary base, A the generating map `z -> z**2 + c`. See MEMORY.md 2026-10-21.
 
-## Timing fields (Aether §9)
+## Timing fields (Aether §10)
 `canor_field3_t[3][3][3]`, indexed by `PRE/PERI/POST × MIN/NOM/MAX × LOW/VALUE/HIGH`. Components are integers or closed `LO/HI` integer intervals. The flowrate metric is ops/sec. Every field carries `UPDATE_RATE` and `ERROR_RATE`. Implemented in `canor_timing.h`: the property type is chosen at compile time (`CANOR_TIMING_INTERVAL` 0 → 27 integers, 1 → 54 interval bounds).
 
 ## Aether IR
@@ -71,6 +76,15 @@ An integer-only binary tree: atoms (an integer value) and cells (ordered left/ri
 
 ## IMAG basis — **PINNED**
 `[one=0, (i,j,k)=1..3, (l,m,n)=4..6, (o,p,q)=7..9, (r,s,t)=10..12, (e,f,g)=13..15]` (5 trifectas = 16 basis elements, sedenions). Differentials `di … dg` follow the same order (MEMORY.md, 2026-10-20).
+
+**Hamilton's trifectas (PINNED, MEMORY.md 2026-10-25).** Every trifecta `(a,b,c)` obeys `a·b = c`, `b·c = a`, `c·a = b`, `b·a = −c`, `a² = b² = c² = −1`. The product is Cayley–Dickson doubling over each unit's coordinate:
+
+| Unit | one | i | j | k | l | m | n | o | p | q | r | s | t | e | f | g |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Cayley–Dickson coordinate | 0 | 1 | 2 | 3 | 4 | 8 | 12 | 5 | 10 | 15 | 6 | 11 | 13 | 7 | 9 | 14 |
+
+The trifectas are the lexicographically first spread of PG(3,2). All 56 spreads lie in one GL(4,2) orbit, so the choice is a relabelling. `(i,j,k)` with `l, o, r, e` spans the octonions. `canor_imag_cd_index` returns a unit's coordinate.
+
 *Sub-algebra Profiles*: Quaternion sub-algebras (e.g. 4 trifectas with modular or disjoint quaternion products) are supported as profile configurations.
 
 ## FlowValue bit encoding — **PINNED**
@@ -82,7 +96,7 @@ An integer-only binary tree: atoms (an integer value) and cells (ordered left/ri
 | `11` | PosOne |
 
 ## CanorDB structures (draft)
-1. Hypercomplex hypersurreal numbers. 2. Pure tensors (tensor-network contractions, HaPPY codes). 3. Aether Propositum structures. 4. Symbolicals (expressions and equations). X. Canorum (Canor-specific structures and protocols).
+1. Hypercomplex hypersurreal numbers. 2. Pure tensors (tensor-network contractions, HaPPY codes). 3. Aether Propositum structures (Elementary, Unique, Composite and Unknown tree compositions). 4. Symbolicals: Real (numeric), Imaginary (permutohedron) and Complex (tensorial) expressions and equations. X. Canorum (Canor-specific protocols, waveforms, architectures and system interfaces).
 
 ## Grammar
 `atoms.ebnf` (60 productions, Appendix A of Working Draft v1) is located at [CanorLinguae/grammar/atoms.ebnf](CanorLinguae/grammar/atoms.ebnf).

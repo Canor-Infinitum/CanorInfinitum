@@ -1,6 +1,6 @@
 /* canor_swar.c - generic limb arithmetic behind the SWAR-SIMD macro library.
  *
- * Canor WD v1 §9 Aether: integer programming with interval arithmetic. Every
+ * Canor §10 Aether: integer programming with interval arithmetic. Every
  * routine is exact over uint64_t limbs and uses no wider native type, so it
  * builds unchanged for 32-bit Zephyr MCUs, WASM and 64-bit hosts. */
 

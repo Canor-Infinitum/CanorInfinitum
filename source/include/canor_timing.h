@@ -3,7 +3,7 @@
 
 /* Physical Programming timing library: op/sec observables.
  *
- * Canor WD v1 §9 Aether, SCHEMA.md "Timing fields". Every measurement yields
+ * Canor §10 Aether, SCHEMA.md "Timing fields". Every measurement yields
  * an observable shaped
  *
  *     PRE / PERI / POST  x  MIN / NOM / MAX  x  LOW / VALUE / HIGH

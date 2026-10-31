@@ -1,9 +1,9 @@
 #ifndef CANOR_SOUL_H
 #define CANOR_SOUL_H
 
-/* Soul(TM) Symbols: the count stream of a Flow traversal (Canor WD v1 §4).
+/* Soul(TM) Symbols: the count stream of a Flow traversal (Canor §5).
  *
- * FLOW VALUES (§1, SCHEMA.md "Flow / MetaFlow"). A Flow is a length n and a
+ * FLOW VALUES (§2, SCHEMA.md "Flow / MetaFlow"). A Flow is a length n and a
  * total function over Index(n) = {0..n-1} into AtomUsage = (atom, ring). It is
  * immutable, and repeated atoms are DISTINCT POSITIONS: every occurrence
  * counts, nothing is deduplicated. The ring index is CATEGORICAL - it selects

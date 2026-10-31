@@ -5,7 +5,7 @@
  *
  *     Strategy x Flow x MetaFlow -> Soul,   Soul x Action -> Maneuver
  *
- * Canor WD v1 §1 Flow, §2 MetaFlow, §3 Action, §4 Soul, §5 Maneuver.
+ * Canor §2 Flow, §3 MetaFlow, §4 Action, §5 Soul, §6 Maneuver.
  *
  * NOTHING LARGE IS MATERIALIZED. Every element is named by its rank and
  * produced on demand (/soul skill "Large spaces"; MEMORY.md 2026-10-20).
@@ -34,7 +34,7 @@
  *             with depth k = the Strategy's order and e_u its differential;
  *             the MetaFlow permutation is the slot order of the string.
  *   Soul      (Strategy * 7776 + Flow) * 24 + MetaFlow.  16,796,160
- *             Its value is the §4 count stream of the Flow (L->R).
+ *             Its value is the §5 count stream of the Flow (L->R).
  *   Action    m ≣ n (mod o), m, n, o in 0..289.  290^3 = 24,389,000.
  *             o = 0 is kept and diagnosed CANOR_ERR_UNDEFINED (84,100 of them).
  *   Maneuver  Soul * 24,389,000 + Action.  409,641,546,240,000
@@ -154,7 +154,7 @@ typedef struct {
   canor_enum_strategy_t strategy;
   canor_enum_flow_t flow;
   canor_enum_metaflow_t metaflow;
-  canor_soul_stream_t stream;          /* §4 count stream, L->R */
+  canor_soul_stream_t stream;          /* §5 count stream, L->R */
   canor_soul_category category;
 } canor_enum_soul_t;
 

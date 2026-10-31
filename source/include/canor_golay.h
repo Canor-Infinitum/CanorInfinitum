@@ -209,7 +209,7 @@ bool prov_verify(const void *data, size_t n, const char *stamp, prov_result *r);
 
 /* --- temporal telemetry ---------------------------------------------------
  * The ternary-phase model of temporalis.pas, on the canor_timing library
- * (Canor WD v1 §9 Aether; SCHEMA.md "Timing fields"):
+ * (Canor §10 Aether; SCHEMA.md "Timing fields"):
  *
  *   PRE   attention arrives until commitment. Measures the USER.
  *   PERI  commitment until dispatch. Motor, and the most stable.

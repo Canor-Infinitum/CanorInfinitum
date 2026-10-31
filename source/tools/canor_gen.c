@@ -195,7 +195,7 @@ static int gen_flow(const gen_ctx *c) {
   char sym[CANOR_ENUM_SYMBOL_MAX];
 
   if (gen_open(&h, c, "flow", "fwh")) return -1;
-  gen_provenance(&h, c, "Canor WD v1 \xC2\xA7" "1 Flow");
+  gen_provenance(&h, c, "Canor \xC2\xA7" "2 Flow");
   for (unsigned t = 0; t < CANOR_ENUM_TRIFECTAS; ++t) {
     unsigned u = 1 + t * CANOR_ENUM_TRIFECTA_SIZE;
     gen_line(&h, "Flow.trifecta.T%u trifecta :: Trifecta{%s, %s, %s} : {index = {%u, %u, %u}}", t,
@@ -217,7 +217,7 @@ static int gen_flow(const gen_ctx *c) {
   if (gen_close(&h)) return -1;
 
   if (gen_open(&b, c, "flow", "fwb")) return -1;
-  gen_provenance(&b, c, "Canor WD v1 \xC2\xA7" "1 Flow");
+  gen_provenance(&b, c, "Canor \xC2\xA7" "2 Flow");
   for (uint64_t r = 0; r < CANOR_ENUM_FLOW_COUNT; ++r) {
     gen_buf line = {{0}, 0, 0};
     if (canor_enum_flow_unrank(r, &f) != CANOR_OK) return -1;
@@ -308,7 +308,7 @@ static int gen_metaflow(const gen_ctx *c) {
   char grp[CANOR_ENUM_SYMBOL_MAX], sym[CANOR_ENUM_SYMBOL_MAX];
 
   if (gen_open(&h, c, "metaflow", "fwh")) return -1;
-  gen_provenance(&h, c, "Canor WD v1 \xC2\xA7" "2 MetaFlow");
+  gen_provenance(&h, c, "Canor \xC2\xA7" "3 MetaFlow");
   for (uint8_t a = 0; a < CANOR_ENUM_METAFLOW_ATOMS; ++a)
     gen_line(&h, "MetaFlow.label.%s label :: Atom : \"%s\"", canor_enum_metaflow_label(a),
              canor_enum_metaflow_label_name(a));
@@ -343,7 +343,7 @@ static int gen_metaflow(const gen_ctx *c) {
   if (gen_close(&h)) return -1;
 
   if (gen_open(&b, c, "metaflow", "fwb")) return -1;
-  gen_provenance(&b, c, "Canor WD v1 \xC2\xA7" "2 MetaFlow");
+  gen_provenance(&b, c, "Canor \xC2\xA7" "3 MetaFlow");
   for (uint64_t r = 0; r < CANOR_ENUM_INVOCATION_COUNT; ++r) {
     canor_enum_fractal_t x;
     gen_buf line = {{0}, 0, 0};
@@ -401,7 +401,7 @@ static int gen_soul(const gen_ctx *c) {
   char path[64], fn[64];
 
   if (gen_open(&h, c, "soul", "fwh")) return -1;
-  gen_provenance(&h, c, "Canor WD v1 \xC2\xA7" "4 Soul");
+  gen_provenance(&h, c, "Canor \xC2\xA7" "5 Soul");
   gen_line(&h, "Soul.factor.Strategy factor :: Space{count = %llu, source = \"metaflow/metaflow.fwh\"}",
            (unsigned long long)CANOR_ENUM_STRATEGY_COUNT);
   gen_line(&h, "Soul.factor.Flow factor :: Space{count = %llu, source = \"flow/flow.fwb\"}",
@@ -424,7 +424,7 @@ static int gen_soul(const gen_ctx *c) {
   if (gen_close(&h)) return -1;
 
   if (gen_open(&b, c, "soul", "fwb")) return -1;
-  gen_provenance(&b, c, "Canor WD v1 \xC2\xA7" "4 Soul");
+  gen_provenance(&b, c, "Canor \xC2\xA7" "5 Soul");
   for (int k = 0; k < CANOR_SOUL_KINDS; ++k) {
     canor_soul_kind kind = (canor_soul_kind)k;
     snprintf(path, sizeof path, "Soul.%s", canor_soul_kind_name(kind));
@@ -465,7 +465,7 @@ static int gen_action(const gen_ctx *c) {
   canor_enum_action_t a;
 
   if (gen_open(&h, c, "action", "fwh")) return -1;
-  gen_provenance(&h, c, "Canor WD v1 \xC2\xA7" "3 Action");
+  gen_provenance(&h, c, "Canor \xC2\xA7" "4 Action");
   gen_line(&h, "Action.equation template :: Congruence{m, n, o} : \"m \xE2\x89\xA3 n (mod o)\"");
   gen_line(&h, "Action.range.m range :: Interval{lo = 0, hi = %llu}",
            (unsigned long long)(CANOR_ENUM_ACTION_BOUND - 1));
@@ -486,7 +486,7 @@ static int gen_action(const gen_ctx *c) {
   if (gen_close(&h)) return -1;
 
   if (gen_open(&b, c, "action", "fwb")) return -1;
-  gen_provenance(&b, c, "Canor WD v1 \xC2\xA7" "3 Action");
+  gen_provenance(&b, c, "Canor \xC2\xA7" "4 Action");
   if (gen_samples(&b, c, "Action", CANOR_ENUM_ACTION_COUNT, "canor_enum_action_unrank",
                   gen_action_emit, NULL))
     return -1;
@@ -536,7 +536,7 @@ static int gen_maneuver(const gen_ctx *c) {
   char path[64], fn[64];
 
   if (gen_open(&h, c, "maneuver", "fwh")) return -1;
-  gen_provenance(&h, c, "Canor WD v1 \xC2\xA7" "5 Maneuver");
+  gen_provenance(&h, c, "Canor \xC2\xA7" "6 Maneuver");
   gen_line(&h, "Maneuver.factor.Soul factor :: Space{count = %llu, source = \"soul/soul.fwh\"}",
            (unsigned long long)CANOR_ENUM_SOUL_COUNT);
   gen_line(&h, "Maneuver.factor.Action factor :: Space{count = %llu, source = \"action/action.fwh\"}",
@@ -556,7 +556,7 @@ static int gen_maneuver(const gen_ctx *c) {
   if (gen_close(&h)) return -1;
 
   if (gen_open(&b, c, "maneuver", "fwb")) return -1;
-  gen_provenance(&b, c, "Canor WD v1 \xC2\xA7" "5 Maneuver");
+  gen_provenance(&b, c, "Canor \xC2\xA7" "6 Maneuver");
   for (int k = 0; k < CANOR_SOUL_KINDS; ++k) {
     canor_soul_kind kind = (canor_soul_kind)k;
     snprintf(path, sizeof path, "Maneuver.%s", canor_soul_kind_name(kind));

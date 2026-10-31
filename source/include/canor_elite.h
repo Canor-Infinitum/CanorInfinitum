@@ -3,14 +3,14 @@
 
 /* Elite(TM) Programming & Assembler, and the multilateral Diffeomorphic Basis.
  *
- * Canor WD v1 §7 Elite Programming & Assembler, §6 United Interchange;
+ * Canor §8 Elite Programming & Assembler, §7 United Interchange;
  * CanorLinguae Z-Notation Draft §7 (UnitedApproval, BilateralUnitedValidity),
  * §8 (Elite Assembly and Governance), §12 (Provenance, Contracts, Security),
  * §13 (Open Design Decisions).
  *
  * TWO HALVES, ONE CONTRACT
  * ------------------------
- * §7 gives Elite two jobs that share a single object:
+ * §8 gives Elite two jobs that share a single object:
  *
  *   "For a bilateral United schema, the agreed Elite vocabulary serves as the
  *    common diffeomorphic basis ... Both signatories can bind their signatures
@@ -56,7 +56,7 @@
  * WHAT THE CORE DOES NOT DECIDE
  * -----------------------------
  * Digest algorithms, signature algorithms, trust roots and revocation are
- * profile-defined (WD v1 §6; Z §7, §12; SCHEMA.md "digest algorithm TODO").
+ * profile-defined (Canor §7; Z §7, §12; SCHEMA.md "digest algorithm TODO").
  * The core therefore never computes a digest or checks a signature itself: it
  * builds the CANONICAL BYTES of every statement (so all parties sign the same
  * bytes on every host) and calls the profile's digest/verify functions. When
@@ -397,7 +397,7 @@ typedef struct {
   canor_elite_diag_t diag[CANOR_ELITE_DIAG_MAX];
 } canor_elite_report_t;
 
-/* --- the assembler (§7): freeform pattern replacement, branches retained ---
+/* --- the assembler (§8): freeform pattern replacement, branches retained ---
  *
  * FREEFORM RULES (user decision, 2026-10-20). Elite source is line-based and
  * is NOT read through atoms.ebnf; that is what frees "$" and every other glyph
@@ -409,7 +409,7 @@ typedef struct {
  *   anything else            a PROGRAM LINE, to be assembled.
  *
  * - Any specification may be redefined on any later line. Every definition is
- *   kept, in source order, as one more candidate interpretation (§7 "multiple
+ *   kept, in source order, as one more candidate interpretation (§8 "multiple
  *   interpretation paths"; AGENTS.md invariant 3: an earlier definition is
  *   never silently dropped).
  * - '|' separates definitions, except inside (), [] or {}. "\|" and "\:" are a
@@ -471,7 +471,7 @@ typedef struct {
   uint16_t diag_total; /* found; exceeds diag_count only past the capacity */
 } canor_elite_program_t;
 
-/* Declared tooling (§7): recorded for reproducibility; the core never calls
+/* Declared tooling (§8): recorded for reproducibility; the core never calls
  * an external tool. A tool's outputs enter as scores (canor_elite_score). */
 typedef enum {
   CANOR_ELITE_TOOL_AGENT = 0,
@@ -527,7 +527,7 @@ typedef enum {
   CANOR_ELITE_TERM_LIMIT = 1      /* configured traversal limit reached */
 } canor_elite_termination_t;
 
-/* Governance / provenance record (§7, Z §8). An OUTPUT of assembly; persisting
+/* Governance / provenance record (§8, Z §8). An OUTPUT of assembly; persisting
  * it is a separately governed action, so nothing here writes anywhere. */
 typedef struct {
   bool basis_bound;

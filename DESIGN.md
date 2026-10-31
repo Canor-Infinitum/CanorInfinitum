@@ -21,19 +21,22 @@ flowchart TD
   I --> F["C. CanorInfinitum: hardware, software, technology"]
 ```
 
-## CanorLinguae: The Nine Layered Interoperability Languages
+## CanorLinguae: The Ten Languages ([docs/Canor.md](docs/Canor.md))
 
-| § | Language | Role and Formal Definition |
+| § | Language | Role |
 |---|---|---|
-| 1 | **Flow™** | Defines immutable, ordered sequences of imaginary-base atoms grouped into registered Hamilton-style trifectas (e.g. `i,j,k`). |
-| 2 | **MetaFlow** | Structures multi-channel organizational representations across up to four bounded slots: Reals (`R`), Gaps (`G`), Bases (`B`), and Auxiliaries (`A`). |
-| 3 | **Action™** | Imposes typed modular constraints ($L \equiv R \pmod N$) evaluated using canonical non-negative residues. |
-| 4 | **Soul™** | Composes a Flow with an Action into an executable state symbol whose traversal produces a deterministic $n+1$ count stream. |
-| 5 | **Maneuver™** | Binds Soul symbols to functional equations and tensor expressions across $1:1$, $1:n$, and $n:1$ algebraic junctions. |
-| 6 | **United™** | Serves as the primary interchange container (`.fwo`), bundling language artifacts and optional JSON/XML manifests under a canonical digest. |
-| 7 | **Elite™** | Provides side-effect-free, branch-retaining pattern assembly using Assembly as its meta-language. |
-| 8 | **Follower™ Interlingua** | Coordinates plug-and-play bindings to external complementary languages (Free Pascal, SWI-Prolog, C, Rust FFI). (Latin locale: *Carmen™ Interlingua*). |
-| 9 | **Aether™** | Encodes program semantics as an integer binary-tree Intermediate Representation (IR) instrumented by real-time latency and jitter timing fields. |
+| 1 | **Strategy™** | Differential imaginary bases `di … dg`. Cayley–Dickson projection of the sedenions onto associative quaternionic caches (the Hamilton trifectas) |
+| 2 | **Flow™** | Ordered, immutable atom sequences over Hamilton's quaternionic trifectas (e.g. `i,j,k`) |
+| 3 | **MetaFlow™** | ≤ 4 labeled atoms: `R` Reals, `G` Gaps, `B` Bases, `A` Auxiliaries |
+| 4 | **Action™** | Integer dimensional constants and typed modular constraints: `L ≡ R (mod N)` with canonical residues |
+| 5 | **Soul™** | Flow + MetaFlow + Action → executable symbol. Traversal emits an n+1 count stream |
+| 6 | **Maneuver™** | Binds a Soul symbol to a symbolic expression (bra-ket notation). 1:1, 1:n, and n:1 junctions; benchmarked by timing fields |
+| 7 | **United™** | Interchange language and `.fwo` container (JSON/XML artifacts, canonical digest) |
+| 8 | **Elite™** | Procedural invocation and branching assembler. Side-effect-free |
+| 9 | **Follower™ / Carmen™ Interlingua** | Main interoperability layer to complementary languages, pipe-dot (`\| ... .`) framed. Runtime effects only when authorized |
+| 10 | **Aether™** | Integer binary-tree IR plus timing-library linker (op/sec, latency/jitter fields) |
+
+**Core and profile split.** The core holds only the integer parts of each language, such as Hilbert ordering, quadtrees, mipmaps and checksums for Soul. Diffusion transformers, MCMC and agent- or LLM-guided rewriting are profile-defined. Their outputs enter as recorded inputs with seed and provenance. Reaching a configured limit is reported, never silently cut (MEMORY.md 2026-10-25).
 
 ## Implementation Layers
 

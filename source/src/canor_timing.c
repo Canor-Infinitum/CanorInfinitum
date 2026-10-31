@@ -1,4 +1,4 @@
-/* canor_timing.c - op/sec observables (Canor WD v1 §9 Aether).
+/* canor_timing.c - op/sec observables (Canor §10 Aether).
  *
  * The readings declared in canor_timing.h are implemented once, over closed
  * integer intervals. Integer mode is the degenerate case lo == hi, so the two

@@ -1,5 +1,5 @@
 /* Property tests for canor_elite: the multilateral Diffeomorphic Basis accord
- * and the Elite(TM) assembler. Canor WD v1 §7, §6; Z-Notation Draft §7, §8.
+ * and the Elite(TM) assembler. Canor §8, §7; Z-Notation Draft §7, §8.
  *
  *   canor_test_elite            run every property; exit 0 when all hold
  *   canor_test_elite --record   also print the worked example's governance
@@ -233,7 +233,7 @@ static void fix_accord(canor_elite_accord_t *a, uint8_t parties) {
   static const char *const names[SIG_COUNT] = {"user", "app", "agent"};
   static const canor_elite_role_t roles[SIG_COUNT] = {
       CANOR_ELITE_ROLE_USER, CANOR_ELITE_ROLE_APP, CANOR_ELITE_ROLE_AGENT};
-  canor_elite_blob_t object = toy_blob("iiiijk xor (mod 4)"); /* WD v1 §6 body */
+  canor_elite_blob_t object = toy_blob("iiiijk xor (mod 4)"); /* Canor §7 body */
   canor_elite_blob_t prov = toy_blob("provenance: canor.default v1, 2026-10-20");
   uint8_t s;
   CHECK(canor_elite_accord_init(a, &g_basis, &object, 1, &prov) == CANOR_OK);
@@ -601,7 +601,7 @@ static void test_diagnostic_bound(void) {
 /* --- assembler --- */
 
 static void fix_program(canor_elite_program_t *pg, canor_elite_direction_t dir) {
-  static const char *const dollar[] = {"mov", "jmp", "cmp"}; /* WD v1 §7 */
+  static const char *const dollar[] = {"mov", "jmp", "cmp"}; /* Canor §8 */
   static const char *const ab[] = {"r0", "r1"};
   static const char *const x[] = {"r2"};
   CHECK(canor_elite_program_init(pg, dir) == CANOR_OK);
@@ -778,7 +778,7 @@ static void test_side_effect_free(void) {
   CHECK(strstr(g_json, "\"insn\":\"mov r0, r1\"") != NULL);
   CHECK(strstr(g_json, "{\"spec\":\"$\",\"definitions\":[{\"text\":\"mov\"") != NULL);
   /* built-in strings longer than a name are written whole, never cut */
-  CHECK(strstr(g_json, "\"spec\":\"Canor WD v1 s7; Z-Notation Draft s7, s8\"") !=
+  CHECK(strstr(g_json, "\"spec\":\"Canor s8; Z-Notation Draft s7, s8\"") !=
         NULL);
   CHECK(strstr(g_json,
                "\"Aether s9 latency/jitter field per branch traversal: not linked\"") !=
@@ -831,7 +831,7 @@ static void test_freeform_source(void) {
   static const char lf[] = "$ : mov | jmp | cmp\n$ r0, r1\n$ r2\nstore r0, r1\n";
   static const char crlf[] =
       "$ : mov | jmp | cmp\r\n$ r0, r1\r\n$ r2\r\nstore r0, r1\r\n";
-  /* §7's example as freeform text: LF and CRLF read identically */
+  /* §8's example as freeform text: LF and CRLF read identically */
   CHECK(parse_into(&g_pga, CANOR_ELITE_L2R, lf));
   CHECK(parse_into(&g_pgb, CANOR_ELITE_L2R, crlf));
   CHECK(memcmp(&g_pga, &g_pgb, sizeof g_pga) == 0);

@@ -1,6 +1,6 @@
 # CanorLinguae: Quantum Gravity Turing-Computing Language Suite
 
-CanorLinguae (QGTC) is a reactive, multi-metaprogramming language suite combining quantum-symbolic and physical models. It defines nine layered interoperability languages: Flow, MetaFlow, Action, Soul, Maneuver, United, Elite, Follower Interlingua (Latin: Carmen), and Aether IR.
+CanorLinguae (QGTC) is a reactive, multi-metaprogramming language suite combining quantum-symbolic and physical models. It defines the ten languages of [docs/Canor.md](../docs/Canor.md): Strategy, Flow, MetaFlow, Action, Soul, Maneuver, United, Elite, Follower / Carmen Interlingua, and Aether IR.
 
 ## Role in Canor Architecture
 

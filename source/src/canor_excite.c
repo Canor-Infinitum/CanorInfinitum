@@ -240,13 +240,17 @@ bool ex_groups_build(ex_groups *g, ex_grouping kind, int dim) {
   }
 
   /* Both remaining kinds enumerate genuine quaternion triples; Fano restricts
-   * the search to e1..e7, where those triples ARE the seven lines. */
+   * the search to the octonion units (Cayley-Dickson coordinates 1..7, i.e.
+   * i, j, k, l, o, r, e), where those triples ARE the seven lines. */
   {
-    int hi = (kind == EX_GROUP_FANO) ? 8 : dim;
-    if (hi > dim) hi = dim;
-    for (a = 1; a < hi; ++a)
-      for (b = a + 1; b < hi; ++b)
-        for (c = b + 1; c < hi; ++c) {
+    for (a = 1; a < dim; ++a)
+      for (b = a + 1; b < dim; ++b)
+        for (c = b + 1; c < dim; ++c) {
+          if (kind == EX_GROUP_FANO &&
+              (canor_imag_cd_index((canor_imag)a) >= 8 ||
+               canor_imag_cd_index((canor_imag)b) >= 8 ||
+               canor_imag_cd_index((canor_imag)c) >= 8))
+            continue;
           /* Closure is orientation-independent, so test both cyclic senses
            * rather than missing a triple because it was written backwards. */
           if (!ex_is_quaternion_triple((uint8_t)a, (uint8_t)b, (uint8_t)c) &&
@@ -269,6 +273,8 @@ bool ex_groups_build(ex_groups *g, ex_grouping kind, int dim) {
 
 /* --- spreads and GL(4,2) ---------------------------------------------------- */
 
+/* XOR holds in Cayley-Dickson coordinates, not in basis indices: the pinned
+ * Hamilton trifectas (MEMORY.md 2026-10-25) relabel every unit past k. */
 bool ex_index_xor_holds(void) {
   int a, b;
   for (a = 1; a < CANOR_IMAG_COUNT; ++a)
@@ -277,7 +283,9 @@ bool ex_index_xor_holds(void) {
       int sg;
       if (a == b) continue;
       if (canor_imag_mul((canor_imag)a, (canor_imag)b, &p, &sg) != CANOR_OK) return false;
-      if ((int)p != (a ^ b)) return false;
+      if (canor_imag_cd_index(p) !=
+          (canor_imag_cd_index((canor_imag)a) ^ canor_imag_cd_index((canor_imag)b)))
+        return false;
     }
   return true;
 }
@@ -316,8 +324,9 @@ bool ex_spreads_all(ex_spread_set *out) {
   return out->count > 0;
 }
 
-/* A GL(4,2) element as four 4-bit rows. Applying it to an index means reading
- * the index as a vector of F2^4 and taking parities. */
+/* A GL(4,2) element as four 4-bit rows. Applying it to a Cayley-Dickson
+ * coordinate means reading the coordinate as a vector of F2^4 and taking
+ * parities. A basis unit goes through canor_imag_cd_index first. */
 static int gl_apply(const uint8_t row[4], int v) {
   int out = 0, i;
   for (i = 0; i < 4; ++i) {
@@ -404,7 +413,8 @@ bool ex_spread_orbit_split(const ex_spread_set *sp, ex_spread_orbits *out) {
             if (!gl_invertible(rows)) continue;
             for (j = 0; j < 5; ++j)
               for (k = 0; k < 3; ++k)
-                img[j][k] = (uint8_t)gl_apply(rows, sp->line[i][j][k]);
+                img[j][k] = (uint8_t)canor_imag_from_cd_index(
+                    gl_apply(rows, canor_imag_cd_index(sp->line[i][j][k])));
             idx = spread_find(sp, (const uint8_t (*)[3])img);
             if (idx < 0) continue;             /* image is not a spread: impossible */
             if (idx == i) ++stab;

@@ -23,6 +23,64 @@ static void test_imag(void) {
                 canor_imag_name((canor_imag)k)[1] == '\0');
   CANOR_CHECK(canor_imag_mul(1, 2, &u, &s) == CANOR_OK && u == 3 && s == 1);    /* i*j = k  */
   CANOR_CHECK(canor_imag_mul(2, 1, &u, &s) == CANOR_OK && u == 3 && s == -1);   /* j*i = -k */
+
+  /* PINNED (MEMORY.md 2026-10-25): every trifecta (a,b,c) obeys Hamilton's
+   * rules, a.b = c, b.c = a, c.a = b, b.a = -c, a.a = -1. */
+  int hamilton = 1;
+  for (int t = 0; t < CANOR_IMAG_TRIFECTAS; ++t) {
+    canor_imag a = (canor_imag)(3 * t + 1), b = (canor_imag)(3 * t + 2), c = (canor_imag)(3 * t + 3);
+    hamilton &= canor_imag_mul(a, b, &u, &s) == CANOR_OK && u == c && s == 1;
+    hamilton &= canor_imag_mul(b, c, &u, &s) == CANOR_OK && u == a && s == 1;
+    hamilton &= canor_imag_mul(c, a, &u, &s) == CANOR_OK && u == b && s == 1;
+    hamilton &= canor_imag_mul(b, a, &u, &s) == CANOR_OK && u == c && s == -1;
+    hamilton &= canor_imag_mul(a, a, &u, &s) == CANOR_OK && u == 0 && s == -1;
+  }
+  CANOR_CHECK(hamilton);
+
+  int round_trip = 1;
+  for (int k = 0; k < CANOR_IMAG_COUNT; ++k)
+    round_trip &= canor_imag_from_cd_index(canor_imag_cd_index((canor_imag)k)) == k;
+  CANOR_CHECK(round_trip);
+  CANOR_CHECK(canor_imag_cd_index((canor_imag)CANOR_IMAG_COUNT) == -1);
+
+  if (CANOR_IMAG_COUNT == 16) {
+    /* (i,j,k) with the leading units l, o, r, e span the octonions. */
+    static const char *const octonion = "ijklore";
+    int span = 1;
+    for (int k = 1; k < CANOR_IMAG_COUNT; ++k)
+      span &= (canor_imag_cd_index((canor_imag)k) < 8) ==
+              (strchr(octonion, canor_imag_name((canor_imag)k)[0]) != NULL);
+    CANOR_CHECK(span);
+
+    /* Octonion non-associativity: (i.j).l = -(i.(j.l)). */
+    canor_imag ij, jl, left, right;
+    int s1, s2, s3, s4;
+    canor_imag_mul(1, 2, &ij, &s1);
+    canor_imag_mul(ij, 4, &left, &s2);
+    canor_imag_mul(2, 4, &jl, &s3);
+    canor_imag_mul(1, jl, &right, &s4);
+    CANOR_CHECK(left == right && s1 * s2 == -(s3 * s4));
+
+    /* Sedenion zero divisors: some (e_a + e_b)(e_c + sign e_d) = 0. */
+    int zero_divisors = 0;
+    for (int a = 1; a < 16; ++a)
+      for (int b = a + 1; b < 16; ++b)
+        for (int c = 1; c < 16; ++c)
+          for (int d = c + 1; d < 16; ++d)
+            for (int sd = -1; sd <= 1; sd += 2) {
+              int coeff[16] = {0};
+              const int x[2] = {a, b}, y[2] = {c, d}, ys[2] = {1, sd};
+              for (int p = 0; p < 2; ++p)
+                for (int q = 0; q < 2; ++q) {
+                  canor_imag_mul((canor_imag)x[p], (canor_imag)y[q], &u, &s);
+                  coeff[u] += s * ys[q];
+                }
+              int zero = 1;
+              for (int z = 0; z < 16; ++z) zero &= coeff[z] == 0;
+              zero_divisors += zero;
+            }
+    CANOR_CHECK(zero_divisors > 0);
+  }
 }
 
 static void test_counts(void) {

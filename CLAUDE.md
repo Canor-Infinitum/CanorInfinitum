@@ -7,10 +7,10 @@ Claude Code loads this file automatically. Shared context is imported below. Kee
 @AGENTS.md
 
 ## How to work here
-- **The working spec is this repository's Markdown:** SCHEMA.md (types, encodings, PINNED), AGENTS.md (invariants), MEMORY.md (decisions), CONTEXT.md (glossary). Keep citing the section labels (Flow §1 … Aether §9). The PDF drafts are legacy. Don't look for them outside the repository.
+- **The working spec is this repository's Markdown:** docs/Canor.md (the project and its ten languages), SCHEMA.md (types, encodings, PINNED), AGENTS.md (invariants), MEMORY.md (decisions), CONTEXT.md (glossary). Cite the section labels (Strategy §1, Flow §2 … Aether §10). The PDF drafts are legacy. Don't look for them outside the repository.
 - **Plan before editing** anything marked PINNED in `SCHEMA.md`. Propose the change and wait for approval.
 - **Canonical Naming.** Ensure every header, function, and structure strictly follows the `canor_*` naming standard per MEMORY.md.
-- **Verify by property.** Examples: Flow count stream has n+1 vectors, residues are canonical, quaternion `i*j=k`/`j*i=-k`, octonion non-associativity, sedenion zero divisors, United digest stability.
+- **Verify by property.** Examples: Flow count stream has n+1 vectors, residues are canonical, every trifecta obeys Hamilton's rules (`i*j=k`/`j*i=-k`, likewise `l*m=n` … `e*f=g`), octonion non-associativity, sedenion zero divisors, United digest stability.
 - After any change to the C core, run build + tests + the lint grep from AGENTS.md, then report the result.
 
 ## Locales

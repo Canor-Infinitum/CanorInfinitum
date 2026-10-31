@@ -1,6 +1,6 @@
 /* Elite(TM) Programming & Assembler, and the multilateral Diffeomorphic Basis.
  *
- * Design and rationale: canor_elite.h. Canor WD v1 §7, §6; CanorLinguae
+ * Design and rationale: canor_elite.h. Canor §8, §7; CanorLinguae
  * Z-Notation Draft §7 (UnitedApproval, BilateralUnitedValidity), §8, §12.
  *
  * Everything here is pure: const inputs in, caller-placed outputs out. The
@@ -436,7 +436,7 @@ canor_status canor_elite_program_define(canor_elite_program_t *p,
     if (r->def_count >= CANOR_ELITE_ALT_MAX) return CANOR_ERR_FULL;
   }
   /* A redefinition appends: repeated definitions are distinct positions, as
-   * duplicate atoms are in a Flow (§1). */
+   * duplicate atoms are in a Flow (§2). */
   memcpy(r->def[r->def_count], def, nd + 1);
   r->def_line[r->def_count] = source_line;
   ++r->def_count;
@@ -731,7 +731,7 @@ canor_status canor_elite_basis_encode(const canor_elite_basis_t *b, uint8_t *buf
   canor_elite_enc_init(&e, buf, cap, canor_elite_tag_basis);
   canor_elite_enc_str(&e, b->name);
   canor_elite_enc_i64(&e, (int64_t)b->version);
-  /* Declaration order is significant, like the United manifest (§6). */
+  /* Declaration order is significant, like the United manifest (§7). */
   canor_elite_enc_u8(&e, b->vocab_count);
   for (i = 0; i < b->vocab_count; ++i) {
     canor_elite_enc_str(&e, b->vocab[i].token);
@@ -1343,7 +1343,7 @@ static uint8_t canor_elite_text_check(const canor_elite_profile_t *p,
   int wi;
   while (b < n && canor_elite_space((unsigned char)t[b])) ++b;
   if (b == n) return CANOR_ELITE_S_EMPTY;
-  /* §7: "raw Elite pattern syntax remains permissive" - with no agreed basis
+  /* §8: "raw Elite pattern syntax remains permissive" - with no agreed basis
    * there is nothing to check a line against. */
   if (!accord) return CANOR_ELITE_S_UNCHECKED;
   h = b;
@@ -1366,7 +1366,7 @@ static uint8_t canor_elite_text_check(const canor_elite_profile_t *p,
   if (wi < 0) return CANOR_ELITE_S_NOT_IN_BASIS;
   w = &accord->basis.vocab[wi];
   if (w->arity != operands) f |= CANOR_ELITE_S_ARITY;
-  /* §7: assembly RECORDS the declared effect without performing it. */
+  /* §8: assembly RECORDS the declared effect without performing it. */
   if (w->effect)
     f |= canor_elite_contract_active(p, w->contract)
              ? CANOR_ELITE_S_EFFECT_RECORDED
@@ -1714,7 +1714,7 @@ static const char *const canor_elite_site_flag_names[] = {
 static const char *const canor_elite_parse_kind_names[] = {
     "empty-spec", "too-long", "full", "malformed"};
 
-/* Explicit open items carried in every record (Z §13, WD v1 §7, §9). */
+/* Explicit open items carried in every record (Z §13, Canor §8, §10). */
 static const char *const canor_elite_open_items[] = {
     "candidate-ordering schema (Z s13); declared: lexicographic over rewrite "
     "paths, first-traversed line most significant",
@@ -2112,7 +2112,7 @@ canor_status canor_elite_record_json(const canor_elite_profile_t *p,
   canor_elite_ju64(&j, 1);
   canor_elite_jraw(&j, ",");
   canor_elite_jkey(&j, "spec");
-  canor_elite_jlit(&j, "Canor WD v1 s7; Z-Notation Draft s7, s8");
+  canor_elite_jlit(&j, "Canor s8; Z-Notation Draft s7, s8");
   canor_elite_jraw(&j, ",");
   canor_elite_json_profile(&j, p);
   canor_elite_jraw(&j, ",");
@@ -2271,7 +2271,7 @@ canor_status canor_elite_record_json(const canor_elite_profile_t *p,
   canor_elite_jkey(&j, "diagnosed");
   canor_elite_ju64(&j, rec->diagnosed);
   canor_elite_jraw(&j, "},");
-  /* §7: assembly records the declared effect without performing it. */
+  /* §8: assembly records the declared effect without performing it. */
   canor_elite_jkey(&j, "effects");
   canor_elite_jraw(&j, "{");
   canor_elite_jkey(&j, "declared");

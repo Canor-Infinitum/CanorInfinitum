@@ -682,14 +682,35 @@ bool canor_kapprox_separated(uint64_t n) {
 static int g_imag_ready = 0;
 static int8_t g_mul_sign[CANOR_IMAG_COUNT][CANOR_IMAG_COUNT];
 static uint8_t g_mul_index[CANOR_IMAG_COUNT][CANOR_IMAG_COUNT];
+static uint8_t g_imag_pos[CANOR_IMAG_COUNT];   /* inverse of g_imag_cd */
+
+/* PINNED (SCHEMA.md "IMAG basis", MEMORY.md 2026-10-25): the Cayley-Dickson
+ * coordinate of each named unit. Canor §2 Flow makes every trifecta one of
+ * Hamilton's quaternionic trifectas, a.b = c, b.c = a, c.a = b. Consecutive
+ * coordinates give that only for (i,j,k): l.m would be +i. So the other four
+ * trifectas take the remaining lines of the lexicographically first spread of
+ * PG(3,2) - {4,8,12}, {5,10,15}, {6,11,13}, {7,9,14} - each led by its
+ * octonion unit and ordered so its product is positive. (i,j,k) with l, o, r,
+ * e then span the octonions. Names and positions are unchanged; only the
+ * product moved. Sixteen entries, checkable by eye; the suite verifies the
+ * Hamilton rules for every trifecta. */
+static const uint8_t g_imag_cd[16] = {
+  0,                /* one     */
+  1, 2, 3,          /* i, j, k */
+  4, 8, 12,         /* l, m, n */
+  5, 10, 15,        /* o, p, q */
+  6, 11, 13,        /* r, s, t */
+  7, 9, 14          /* e, f, g */
+};
 
 /* e_i * e_j in the algebra of dimension 2^n, by Cayley-Dickson doubling
- * (a,b)(c,d) = (ac - conj(d) b, d a + b conj(c)).
+ * (a,b)(c,d) = (ac - conj(d) b, d a + b conj(c)), over Cayley-Dickson
+ * coordinates (g_imag_cd maps a named unit to its coordinate).
  *
  * Computed rather than tabulated. A hand-written 16x16 signed table is 256
  * entries that no reviewer can check by eye; this is the construction itself,
- * and the suite then verifies what follows from it - i*j=k with j*i=-k at
- * dimension 4, non-associativity at 8, zero divisors at 16. */
+ * and the suite then verifies what follows from it - Hamilton's rules on every
+ * trifecta, non-associativity at 8, zero divisors at 16. */
 static void cd_mul(int n, int i, int j, int *idx, int *sgn) {
   if (n == 0) { *idx = 0; *sgn = 1; return; }
   int h = 1 << (n - 1);
@@ -729,15 +750,36 @@ canor_status canor_imag_init(void) {
   if (n > 4) return CANOR_ERR_NOT_CLOSED;   /* beyond sedenions the doubling
                                           * continues but the document's
                                           * trifecta framing does not */
+  /* The coordinate map must be a bijection on the profile's basis (a smaller
+   * profile uses its prefix: one trifecta is i, j, k at 1, 2, 3). Checked, so
+   * a bad map is refused instead of yielding a table that is not a product. */
+  int seen[CANOR_IMAG_COUNT];
+  memset(seen, 0, sizeof seen);
+  for (int i = 0; i < CANOR_IMAG_COUNT; ++i) {
+    int c = g_imag_cd[i];
+    if (c >= CANOR_IMAG_COUNT || seen[c]) return CANOR_ERR_NOT_CLOSED;
+    seen[c] = 1;
+    g_imag_pos[c] = (uint8_t)i;
+  }
   for (int i = 0; i < CANOR_IMAG_COUNT; ++i)
     for (int j = 0; j < CANOR_IMAG_COUNT; ++j) {
       int idx, sgn;
-      cd_mul(n, i, j, &idx, &sgn);
-      g_mul_index[i][j] = (uint8_t)idx;
+      cd_mul(n, g_imag_cd[i], g_imag_cd[j], &idx, &sgn);
+      g_mul_index[i][j] = g_imag_pos[idx];
       g_mul_sign[i][j] = (int8_t)sgn;
     }
   g_imag_ready = 1;
   return CANOR_OK;
+}
+
+int canor_imag_cd_index(canor_imag a) {
+  if (!g_imag_ready || a >= CANOR_IMAG_COUNT) return -1;
+  return g_imag_cd[a];
+}
+
+int canor_imag_from_cd_index(int cd) {
+  if (!g_imag_ready || cd < 0 || cd >= CANOR_IMAG_COUNT) return -1;
+  return g_imag_pos[cd];
 }
 
 canor_status canor_imag_mul(canor_imag a, canor_imag b, canor_imag *index, int *sign) {
@@ -751,11 +793,11 @@ canor_status canor_imag_mul(canor_imag a, canor_imag b, canor_imag *index, int *
 int canor_imag_conj_sign(canor_imag a) { return a == 0 ? 1 : -1; }
 
 const char *canor_imag_name(canor_imag a) {
-  /* PINNED IMAG basis (SCHEMA.md, MEMORY.md 2026-10-20):
+  /* PINNED IMAG basis (SCHEMA.md, MEMORY.md 2026-10-20, 2026-10-25):
    *   [one=0, (i,j,k)=1..3, (l,m,n)=4..6, (o,p,q)=7..9, (r,s,t)=10..12,
    *    (e,f,g)=13..15]
-   * Only the names are pinned here; the product is still Cayley-Dickson
-   * doubling over the indices, so renaming cannot change any table entry. */
+   * Only the names are pinned here; the product comes from g_imag_cd, so
+   * renaming cannot change any table entry. */
   static const char *const n[16] = {
     "one", "i", "j", "k", "l", "m", "n", "o",
     "p", "q", "r", "s", "t", "e", "f", "g"

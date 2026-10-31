@@ -12,7 +12,7 @@ Follow AGENTS.md invariants. Add property tests. Update {folder}/CONTEXT.md. Bui
 ## Implement a CanorLinguae language feature
 ```
 Implement {Flow|MetaFlow|Action|Soul|Maneuver|United|Elite|Carmen|Aether} feature {X}
-per SCHEMA.md and MEMORY.md (Working Draft v1 §{n}). Integer-only; diagnose undefined cases; assembly is side-effect-free.
+per SCHEMA.md and MEMORY.md (Canor §{n}). Integer-only; diagnose undefined cases; assembly is side-effect-free.
 ```
 
 ## Write a conformance test

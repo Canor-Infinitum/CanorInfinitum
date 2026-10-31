@@ -1,6 +1,6 @@
 /* canor_enum.c - rank / unrank over the MOT pipeline spaces.
  *
- * Canor WD v1 §1 Flow ... §5 Maneuver. Every space is a mixed-radix product
+ * Canor §2 Flow ... §6 Maneuver. Every space is a mixed-radix product
  * of small permutohedra and integer ranges, so rank and unrank are exact
  * integer arithmetic and need no storage beyond the element produced. Values
  * come from the modules that own them: count streams from canor_soul, the

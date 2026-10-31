@@ -57,3 +57,7 @@ dkms.conf
 # CMake build trees and generated .fwh/.fwb (AGENTS.md: no generated artifacts)
 build/
 build-*/
+
+# Agent tool backups and packaged skill archives
+.agentic/
+.claude/skills.zip

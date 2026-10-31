@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "canor-site",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8417", "--bind", "127.0.0.1", "--directory", "design"],
+      "port": 8417
+    }
+  ]
+}

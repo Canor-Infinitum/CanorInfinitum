@@ -99,37 +99,33 @@ int canor_demo_cmd_determinism(const canor_demo_config_t *c) {
   /* 4: the same rational built from heap storage allocated in two different
    * orders. If anything derived a result from an address, this diverges. */
   {
-    fb_rat p, q;
-    fb_int scratch;
+    canor_big_rat_t p, q;
+    canor_big_t scratch;
     int cmp1, cmp2;
-    fb_rat_init(&p); fb_rat_init(&q); fb_init(&scratch);
-    fb_rat_set_i64(&p, 355, 113);
-    fb_set_i64(&scratch, 1);               /* perturb the allocation order */
-    fb_shl(&scratch, &scratch, 4096);
-    fb_rat_set_i64(&q, 355, 113);
-    cmp1 = fb_rat_cmp(&p, &q);
-    fb_free(&scratch);
-    cmp2 = fb_rat_cmp(&p, &q);
+    canor_big_rat_init(&p); canor_big_rat_init(&q); canor_big_init(&scratch);
+    (void)canor_big_rat_set_i64(&p, 355, 113);
+    canor_big_set_i64(&scratch, 1);               /* perturb the allocation order */
+    (void)canor_big_shl(&scratch, &scratch, 4096);
+    (void)canor_big_rat_set_i64(&q, 355, 113);
+    cmp1 = canor_big_rat_cmp(&p, &q, NULL);
+    cmp2 = canor_big_rat_cmp(&p, &q, NULL);
     dcheck(cmp1 == 0 && cmp2 == 0,
            "355/113 equals itself across differing allocation histories");
-    fb_rat_free(&p); fb_rat_free(&q);
   }
 
   /* An exact orbit run twice, the second time after the budget has been
    * disturbed. Same classification, same width, or the arithmetic is carrying
    * state it should not. */
   {
-    fb_rat cr, ci;
+    canor_big_rat_t cr, ci;
     int st1 = 0, b1 = 0, st2 = 0, b2 = 0, r1, r2;
-    fb_rat_init(&cr); fb_rat_init(&ci);
-    fb_rat_set_i64(&cr, -1, 4);
-    fb_rat_set_i64(&ci, 1, 2);
+    canor_big_rat_init(&cr); canor_big_rat_init(&ci);
+    (void)canor_big_rat_set_i64(&cr, -1, 4);
+    (void)canor_big_rat_set_i64(&ci, 1, 2);
     r1 = canor_demo_escape_exact(&cr, &ci, 8, &st1, &b1);
-    fb_budget_reset_peak();
     r2 = canor_demo_escape_exact(&cr, &ci, 8, &st2, &b2);
     dcheck(r1 == r2 && st1 == st2 && b1 == b2,
            "an exact orbit repeats exactly, including its width");
-    fb_rat_free(&cr); fb_rat_free(&ci);
   }
 
   /* The RGB projection is a pure function of the string and the config. */

@@ -25,12 +25,12 @@ int canor_demo_cmd_config(const canor_demo_config_t *c) {
   printf("settings    fuel=%d levels=%d grid=%dx%d hv=%dx%d\n",
          c->set.fuel, c->set.levels, c->set.grid_w, c->set.grid_h,
          c->set.hv_tables, c->set.hv_bits);
-  fb_rat_format(&c->frame_cr, b, sizeof b); printf("frame       centre %s", b);
-  fb_rat_format(&c->frame_ci, b, sizeof b); printf(" %s i\n", b);
-  fb_rat_format(&c->frame_sr, b, sizeof b); printf("            span   %s", b);
-  fb_rat_format(&c->frame_si, b, sizeof b); printf(" x %s\n", b);
-  printf("budget      %lu limbs (%lu KB)\n",
-         (unsigned long)c->budget, (unsigned long)(c->budget * 4 / 1024));
+  canor_big_rat_format(&c->frame_cr, b, sizeof b); printf("frame       centre %s", b);
+  canor_big_rat_format(&c->frame_ci, b, sizeof b); printf(" %s i\n", b);
+  canor_big_rat_format(&c->frame_sr, b, sizeof b); printf("            span   %s", b);
+  canor_big_rat_format(&c->frame_si, b, sizeof b); printf(" x %s\n", b);
+  printf("budget      %lu limbs per value (%lu bits)\n",
+         (unsigned long)c->budget, (unsigned long)(c->budget * CANOR_BIG_LIMB_BITS));
   printf("default     %s\n",
          c->default_strategy[0] ? c->default_strategy : "(first listed)");
   printf("points      %ld\n", c->points);

@@ -155,36 +155,50 @@ int canor_demo_cmd_golay(void) {
     gcheck(ok, "delta permutes the 759 octads among themselves");
   }
 
-  /* Telemetry: the ternary-phase model with a Golay-bounded window. */
+  /* Telemetry: the ternary-phase model with a Golay-bounded window. Samples
+   * are one operation over a whole number of millisecond ticks; every
+   * reported figure is exact integer arithmetic in milli-units. */
   {
-    vt_op a, b;
-    vt_forecast f;
-    vt_reset(&a);
-    vt_reset(&b);
-    for (i = 0; i < 60; ++i) {
-      double base = 80.0 + (double)((i * 37) % 11);
-      vt_observe(&a, VT_PRE, 200.0 + (double)((i * 13) % 90));
-      vt_observe(&a, VT_PERI, 45.0 + (double)((i * 7) % 5));
-      vt_observe(&a, VT_POST, base + ((i % 9 == 0) ? 400.0 : 0.0));
-      vt_observe(&b, VT_PRE, 205.0 + (double)((i * 13) % 90));
-      vt_observe(&b, VT_PERI, 46.0 + (double)((i * 7) % 5));
-      vt_observe(&b, VT_POST, base + ((i % 9 == 0) ? 380.0 : 0.0));
+    static canor_golay_tele_t a, b;
+    canor_golay_forecast_t f;
+    int st = CANOR_OK;
+    canor_golay_tele_reset(&a);
+    canor_golay_tele_reset(&b);
+    for (i = 0; i < 60 && st == CANOR_OK; ++i) {
+      uint64_t base = 80u + (uint64_t)((i * 37) % 11);
+      st |= canor_golay_tele_observe(&a, CANOR_TIMING_PRE, 1, 200u + (uint64_t)((i * 13) % 90));
+      st |= canor_golay_tele_observe(&a, CANOR_TIMING_PERI, 1, 45u + (uint64_t)((i * 7) % 5));
+      st |= canor_golay_tele_observe(&a, CANOR_TIMING_POST, 1, base + ((i % 9 == 0) ? 400u : 0u));
+      st |= canor_golay_tele_observe(&b, CANOR_TIMING_PRE, 1, 205u + (uint64_t)((i * 13) % 90));
+      st |= canor_golay_tele_observe(&b, CANOR_TIMING_PERI, 1, 46u + (uint64_t)((i * 7) % 5));
+      st |= canor_golay_tele_observe(&b, CANOR_TIMING_POST, 1, base + ((i % 9 == 0) ? 380u : 0u));
     }
-    vt_forecast_of(&a, &f);
-    printf("\n  temporal telemetry (ternary phases, Welford, CV jitter)\n");
-    printf("    pre   mean %7.2f ms   jitter %.4f\n", f.per_phase[0], f.jitter[0]);
-    printf("    peri  mean %7.2f ms   jitter %.4f\n", f.per_phase[1], f.jitter[1]);
-    printf("    post  mean %7.2f ms   jitter %.4f\n", f.per_phase[2], f.jitter[2]);
-    printf("    forecast %.2f ms  [%.2f, %.2f]  confidence %.3f  n=%lld\n",
-           f.expected_ms, f.lo_ms, f.hi_ms, f.confidence, (long long)f.n);
-    gcheck(f.jitter[2] > f.jitter[1],
+    gcheck(st == CANOR_OK, "60 samples per phase fit the fixed series");
+    gcheck(canor_golay_tele_forecast(&a, &f) == CANOR_OK, "the forecast is computed exactly");
+    printf("\n  temporal telemetry (ternary phases, exact sums, CV jitter)\n");
+    printf("    pre   mean %4lld.%03lld ms   jitter %lld/1000\n",
+           (long long)(f.per_phase_milli[0] / 1000), (long long)(f.per_phase_milli[0] % 1000),
+           (long long)f.jitter_milli[0]);
+    printf("    peri  mean %4lld.%03lld ms   jitter %lld/1000\n",
+           (long long)(f.per_phase_milli[1] / 1000), (long long)(f.per_phase_milli[1] % 1000),
+           (long long)f.jitter_milli[1]);
+    printf("    post  mean %4lld.%03lld ms   jitter %lld/1000\n",
+           (long long)(f.per_phase_milli[2] / 1000), (long long)(f.per_phase_milli[2] % 1000),
+           (long long)f.jitter_milli[2]);
+    printf("    forecast %lld.%03lld ms  [%lld.%03lld, %lld.%03lld]  confidence %lld/1000  n=%lld\n",
+           (long long)(f.expected_milli / 1000), (long long)(f.expected_milli % 1000),
+           (long long)(f.lo_milli / 1000), (long long)(f.lo_milli % 1000),
+           (long long)(f.hi_milli / 1000), (long long)(f.hi_milli % 1000),
+           (long long)f.confidence_milli, (long long)f.n);
+    gcheck(f.jitter_milli[2] > f.jitter_milli[1],
            "the stalling phase has higher CV than the steady one");
-    gcheck(f.lo_ms >= 0.0, "the forecast lower bound is clamped at zero");
-    gcheck(f.confidence > 0.0 && f.confidence < 1.0, "confidence is a proper fraction");
+    gcheck(f.lo_milli >= 0 && f.lo_milli <= f.expected_milli && f.expected_milli <= f.hi_milli,
+           "the forecast is a closed interval around the mean, clamped at zero");
+    gcheck(f.confidence_milli > 0 && f.confidence_milli < 1000, "confidence is a proper fraction");
     {
       int d = 0;
-      bool sim = vt_similar(&a, &b, &d);
-      vt_window_snap(&a, &moved);
+      bool sim = canor_golay_tele_similar(&a, &b, &d);
+      canor_golay_tele_window_snap(&a, &moved);
       printf("    windows: raw distance %d, snap moved %d, similar %s\n",
              d, moved, sim ? "yes" : "no");
       gcheck(!sim || d <= 6, "similar windows are within the proven radius of 6");

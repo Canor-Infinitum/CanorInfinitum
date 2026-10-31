@@ -13,14 +13,14 @@
 
 static void cfg_defaults(canor_demo_config_t *c) {
   memset(c, 0, sizeof *c);
-  fb_rat_init(&c->frame_cr); fb_rat_init(&c->frame_ci);
-  fb_rat_init(&c->frame_sr); fb_rat_init(&c->frame_si);
+  canor_big_rat_init(&c->frame_cr); canor_big_rat_init(&c->frame_ci);
+  canor_big_rat_init(&c->frame_sr); canor_big_rat_init(&c->frame_si);
   /* The classic view: centre -1/2, span 3 by 5/2. */
-  fb_rat_set_i64(&c->frame_cr, -1, 2);
-  fb_rat_set_i64(&c->frame_ci, 0, 1);
-  fb_rat_set_i64(&c->frame_sr, 3, 1);
-  fb_rat_set_i64(&c->frame_si, 5, 2);
-  c->budget = 1u << 20;
+  (void)canor_big_rat_set_i64(&c->frame_cr, -1, 2);
+  (void)canor_big_rat_set_i64(&c->frame_ci, 0, 1);
+  (void)canor_big_rat_set_i64(&c->frame_sr, 3, 1);
+  (void)canor_big_rat_set_i64(&c->frame_si, 5, 2);
+  c->budget = CANOR_BIG_LIMBS_MAX;
   c->default_strategy[0] = 0;
   c->points = 4096;
   snprintf(c->letters[0], sizeof c->letters[0], "enruwyk");
@@ -476,7 +476,7 @@ static bool cfg_frame(canor_demo_jscan_t *j, canor_demo_config_t *c) {
   if (!canor_demo_jlit(j, '{')) { canor_demo_jfail(j, "expected frame object"); return false; }
   if (canor_demo_jlit(j, '}')) return true;
   do {
-    fb_rat *tgt = NULL;
+    canor_big_rat_t *tgt = NULL;
     if (!canor_demo_jstr(j, key, sizeof key)) return false;
     if (!canor_demo_jlit(j, ':')) { canor_demo_jfail(j, "expected ':'"); return false; }
     if      (!strcmp(key, "centre_re") || !strcmp(key, "center_re")) tgt = &c->frame_cr;
@@ -485,13 +485,13 @@ static bool cfg_frame(canor_demo_jscan_t *j, canor_demo_config_t *c) {
     else if (!strcmp(key, "span_im")) tgt = &c->frame_si;
     if (!tgt) { if (!canor_demo_jskip(j)) return false; continue; }
     if (!canor_demo_jstr(j, val, sizeof val)) return false;
-    if (!fb_rat_parse(tgt, val)) {
+    if (canor_big_rat_parse(tgt, val) != CANOR_OK) {
       snprintf(j->err, sizeof j->err, "frame.%s: '%s' is not a rational", key, val);
       return false;
     }
   } while (canor_demo_jlit(j, ','));
   if (!canor_demo_jlit(j, '}')) { canor_demo_jfail(j, "expected '}' in frame"); return false; }
-  if (fb_rat_cmp_i64(&c->frame_sr, 0) <= 0 || fb_rat_cmp_i64(&c->frame_si, 0) <= 0) {
+  if (canor_big_rat_cmp_i64(&c->frame_sr, 0, NULL) <= 0 || canor_big_rat_cmp_i64(&c->frame_si, 0, NULL) <= 0) {
     snprintf(j->err, sizeof j->err, "frame span must be positive");
     return false;
   }

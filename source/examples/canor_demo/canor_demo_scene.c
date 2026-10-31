@@ -207,16 +207,15 @@ int canor_demo_cmd_scene(const canor_demo_config_t *c, int sel, const char *out,
     int q;
     ncurve[i] = 0;
     for (q = 0; q < 32; ++q) {
-      fb_rat v;
+      canor_big_rat_t v;
       canor_ml_report rep;
       int64_t fx = 0;
-      fb_rat_init(&v);
+      canor_big_rat_init(&v);
       if (canor_fractional_relax(canor_rat(1, ADEN[i]),
                               canor_rat((int64_t)(LAM[i] * 100), 100),
                               canor_rat(q, 4), 64, &v, &rep) && rep.ok &&
-          fb_rat_to_fixed(&v.num, &v.den, 20, &fx))
+          (canor_big_rat_to_fixed(&v.num, &v.den, 20, &fx) == CANOR_OK))
         curve[i][ncurve[i]++] = (double)fx / 1048576.0;
-      fb_rat_free(&v);
     }
   }
   canor_demo_check(nvox > 0, "the voxel layer found occupied cells");

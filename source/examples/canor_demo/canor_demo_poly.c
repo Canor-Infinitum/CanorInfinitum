@@ -34,7 +34,7 @@ int canor_demo_cmd_poly(void) {
   canor_poly p, res;
   canor_poly_factors f;
   canor_rational co[CANOR_POLY_MAX];
-  fb_rat v;
+  canor_big_rat_t v;
   int i;
 
   printf("Rational roots over the sieve, Pade, Mittag-Leffler\n\n");
@@ -101,17 +101,17 @@ int canor_demo_cmd_poly(void) {
   /* Pade against Taylor: same function, and the Pade needs far less work. */
   printf("\n  exp(1) by two routes\n");
   {
-    fb_rat pv, tv;
+    canor_big_rat_t pv, tv;
     canor_exp_report er;
     int sq = 0;
     int64_t fx;
     double pd = 0.0, td = 0.0;
-    fb_rat_init(&pv); fb_rat_init(&tv);
+    canor_big_rat_init(&pv); canor_big_rat_init(&tv);
     if (canor_pade_exp(canor_rat(1, 1), 6, 6, &pv, &sq) &&
-        fb_rat_to_fixed(&pv.num, &pv.den, 24, &fx))
+        (canor_big_rat_to_fixed(&pv.num, &pv.den, 24, &fx) == CANOR_OK))
       pd = (double)fx / (double)(1 << 24);
     if (canor_exp_rat(canor_rat(1, 1), 24, &tv, &er) &&
-        fb_rat_to_fixed(&tv.num, &tv.den, 24, &fx))
+        (canor_big_rat_to_fixed(&tv.num, &tv.den, 24, &fx) == CANOR_OK))
       td = (double)fx / (double)(1 << 24);
     printf("    Pade [6/6]   %.10f   (%d squarings)\n", pd, sq);
     printf("    Taylor x24   %.10f   (%d terms, %d squarings)\n",
@@ -119,7 +119,6 @@ int canor_demo_cmd_poly(void) {
     printf("    e            2.7182818285\n");
     qcheck(pd > 2.718281 && pd < 2.718283, "Pade [6/6] hits e to six places");
     qcheck(td > 2.718281 && td < 2.718283, "and so does the Taylor route");
-    fb_rat_free(&pv); fb_rat_free(&tv);
   }
 
   /* Mittag-Leffler must BE exp at alpha = beta = 1 - the identity that makes
@@ -129,14 +128,13 @@ int canor_demo_cmd_poly(void) {
     canor_ml_report mr;
     int64_t fx;
     double e11 = 0.0;
-    fb_rat_init(&v);
+    canor_big_rat_init(&v);
     if (canor_mittag_leffler(canor_rat(1, 1), canor_rat(1, 1), canor_rat(1, 1), 30, &v, &mr) &&
-        fb_rat_to_fixed(&v.num, &v.den, 24, &fx))
+        (canor_big_rat_to_fixed(&v.num, &v.den, 24, &fx) == CANOR_OK))
       e11 = (double)fx / (double)(1 << 24);
     printf("    E(1,1; 1) = %.6f   exp(1) = 2.718282\n", e11);
     qcheck(e11 > 2.7178 && e11 < 2.7188,
            "E(1,1;z) reproduces exp(z) - it is a strict generalisation");
-    fb_rat_free(&v);
   }
 
   /* Fractional relaxation: the damping the PFISD loop wants. At alpha = 1 it
@@ -155,15 +153,14 @@ int canor_demo_cmd_poly(void) {
       for (a = 0; a < 3; ++a) {
         canor_ml_report mr;
         int64_t fx;
-        fb_rat_init(&v);
+        canor_big_rat_init(&v);
         /* 80, not 40. Gamma(alpha.k + 1) grows more slowly than k! for
          * alpha < 1, so the fractional cases need roughly twice the terms;
          * the loop stops early once it has actually converged. */
         ok_a[a] = canor_fractional_relax(canor_rat(an[a], ad[a]), canor_rat(1, 1),
                                       canor_rat(tt[j], 1), 80, &v, &mr);
-        if (ok_a[a] && fb_rat_to_fixed(&v.num, &v.den, 24, &fx))
+        if (ok_a[a] && (canor_big_rat_to_fixed(&v.num, &v.den, 24, &fx) == CANOR_OK))
           vals[a] = (double)fx / (double)(1 << 24);
-        fb_rat_free(&v);
       }
       printf("    %8d %12.6f %12.6f %12.6f\n", tt[j], vals[0], vals[1], vals[2]);
     }
@@ -172,28 +169,27 @@ int canor_demo_cmd_poly(void) {
    * E(1/2, 1; -x) = exp(x^2).erfc(x) exactly. */
   {
     canor_ml_report mr;
-    fb_rat v2;
+    canor_big_rat_t v2;
     int64_t fx;
     double got = 0.0, want = exp(8.0) * erfc(2.8284271);
-    fb_rat_init(&v2);
+    canor_big_rat_init(&v2);
     if (canor_mittag_leffler(canor_rat(1, 2), canor_rat(1, 1),
                           canor_rat(-28284271, 10000000), 80, &v2, &mr) &&
-        fb_rat_to_fixed(&v2.num, &v2.den, 24, &fx))
+        (canor_big_rat_to_fixed(&v2.num, &v2.den, 24, &fx) == CANOR_OK))
       got = (double)fx / (double)(1 << 24);
     printf("\n  closed-form check: E(1/2,1;-2.8284271)\n");
     printf("    computed %.8f   exp(x^2).erfc(x) = %.8f   terms %d\n",
            got, want, mr.terms);
-    /* 5e-5, which is what the method actually delivers rather than what
-     * would have been nice. The coefficients are 1/Gamma to about nine
-     * significant digits, the terms peak near 205 before cancelling down to
-     * 0.19, and the accumulated absolute error across that cancellation is
-     * the limit - roughly four correct significant figures. Asserting five
-     * would be asserting a precision the construction does not have. */
-    qcheck(got > want - 5e-5 && got < want + 5e-5,
-           "the fractional path matches its closed form to ~4 figures");
-    printf("    difference %.2e   (9-digit coefficients across a series that "
-           "peaks at 205)\n", got - want);
-    fb_rat_free(&v2);
+    /* 1e-6, which is what the method actually delivers rather than what
+     * would have been nice. The coefficients come from the declared integer
+     * 1/Gamma table (good to ~1e-16, kept to 64 significant bits), so the
+     * limit is now the series' stopping rule: it ends once a term truncates
+     * to zero in Q20, about 1e-6. Asserting more would be asserting a
+     * precision the construction does not have. */
+    qcheck(got > want - 1e-6 && got < want + 1e-6,
+           "the fractional path matches its closed form to ~6 figures");
+    printf("    difference %.2e   (integer 1/Gamma table; series stops at a "
+           "Q20-zero term)\n", got - want);
   }
 
   printf("\n  L^-1{ s^(a-1)/(s^a + lambda) } = E(a,1; -lambda.t^a), so a\n"

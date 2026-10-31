@@ -107,7 +107,7 @@ typedef struct {
   /* The frame: centre and span, exact rationals. A zoom is a smaller span
    * around the same or a different centre, and nothing about it is
    * approximate - which is the only reason a zoom means anything here. */
-  fb_rat frame_cr, frame_ci, frame_sr, frame_si;
+  canor_big_rat_t frame_cr, frame_ci, frame_sr, frame_si;
   size_t budget;
   /* Which Strategy is selected when --strategy is absent. A name, not an
    * index, so reordering the array cannot silently change the default. */
@@ -219,7 +219,11 @@ int canor_demo_cmd_rgb(const canor_demo_config_t *c, const char *str);
 int canor_demo_cmd_metaflows(const canor_demo_config_t *c);
 
 /* canor_demo_mandel.c */
-int canor_demo_escape_exact(const fb_rat *cr, const fb_rat *ci, int fuel, int *steps, int *bits);
+int canor_demo_escape_exact(const canor_big_rat_t *cr, const canor_big_rat_t *ci, int fuel, int *steps, int *bits);
+/* Per-value limb ceiling for the exact orbit, at most CANOR_BIG_LIMBS_MAX. A
+ * value wider than this ends the orbit as undetermined. */
+void canor_demo_set_value_limbs(size_t limbs);
+size_t canor_demo_value_limbs(void);
 int canor_demo_cmd_describe(const canor_demo_config_t *c);
 int canor_demo_cmd_mandel(const canor_demo_config_t *c);
 

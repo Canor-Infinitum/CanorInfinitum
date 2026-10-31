@@ -18,7 +18,7 @@ static void scheck(int cond, const char *what) {
 }
 
 int canor_demo_cmd_symgraph(void) {
-  double vals[512];
+  int64_t vals[512];   /* transformed values, milli-units */
   canor_series ser;
   canor_sym e;
   int t, c1, c2, r;

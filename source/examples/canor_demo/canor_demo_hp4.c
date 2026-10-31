@@ -164,10 +164,9 @@ int canor_demo_cmd_hp4(const canor_demo_config_t *c, int sel, const char *emit) 
     fprintf(f, "</pre>\n");
 
     /* L_m for this chart: the residual class of its MetaFlow reading. */
-    if (canor_residual_L((canor_kclass)(t % 4), (uint64_t)(6 + t), 0, 0.0, 0.0, &res)) {
+    if (canor_residual_L((canor_kclass)(t % 4), (uint64_t)(6 + t), 0, canor_rat(0, 1), canor_rat(0, 1), &res)) {
       fprintf(f, "<p class=\"sub\">L_m class: <b>%s</b> &nbsp; log2 ratio %lld</p>\n",
               canor_resid_class_name(res.cls), (long long)res.log2_ratio_milli);
-      canor_residual_free(&res);
     }
     fprintf(f, "</div>\n");
   }

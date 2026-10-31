@@ -48,7 +48,9 @@ static int usage(void) {
     "  --centre RE,IM    frame centre, as exact rationals (\"-3/4,0\")\n"
     "  --span RE,IM      frame span, as exact rationals (\"1/1000,1/1000\")\n"
     "  --zoom N          divide the configured span by N, keeping the centre\n"
-    "  --budget LIMBS    arbitrary-precision ceiling (0 = unlimited)\n"
+    "  --budget LIMBS    exact-arithmetic ceiling per value, in 32-bit limbs\n"
+    "                    (0 = the compiled maximum, CANOR_BIG_LIMBS_MAX; build\n"
+    "                    with -DCANOR_BIG_LIMBS_MAX=1024 for mandel fuel > 9)\n"
     "\n"
     "commands\n"
     "  config            what was loaded, and from where\n"
@@ -161,7 +163,7 @@ int main(int argc, char **argv) {
   /* Frame overrides. Each half is an exact rational; a pair is "re,im". */
   {
     const char *pairs[2] = { centre, span };
-    fb_rat *dst[2][2] = { { &cfg.frame_cr, &cfg.frame_ci },
+    canor_big_rat_t *dst[2][2] = { { &cfg.frame_cr, &cfg.frame_ci },
                           { &cfg.frame_sr, &cfg.frame_si } };
     int k;
     for (k = 0; k < 2; ++k) {
@@ -175,7 +177,7 @@ int main(int argc, char **argv) {
       }
       memcpy(buf, pairs[k], (size_t)(comma - pairs[k]));
       buf[comma - pairs[k]] = 0;
-      if (!fb_rat_parse(dst[k][0], buf) || !fb_rat_parse(dst[k][1], comma + 1)) {
+      if (canor_big_rat_parse(dst[k][0], buf) != CANOR_OK || canor_big_rat_parse(dst[k][1], comma + 1) != CANOR_OK) {
         fprintf(stderr, "follow: '%s' is not a pair of rationals\n", pairs[k]);
         return 2;
       }
@@ -184,31 +186,36 @@ int main(int argc, char **argv) {
   if (zoom) {
     /* Dividing the span by an exact integer keeps the frame exact, so a zoom
      * of 10^12 is a real 10^12 and not a rounded one. */
-    fb_rat z;
+    canor_big_rat_t z;
     bool ok;
-    fb_rat_init(&z);
-    ok = fb_rat_parse(&z, zoom) && fb_rat_cmp_i64(&z, 0) > 0;
+    canor_big_rat_init(&z);
+    ok = (canor_big_rat_parse(&z, zoom) == CANOR_OK) && canor_big_rat_cmp_i64(&z, 0, NULL) > 0;
     if (ok) {
-      fb_rat inv;
-      fb_rat_init(&inv);
-      ok = fb_copy(&inv.num, &z.den) && fb_copy(&inv.den, &z.num) &&
-           fb_rat_normalize(&inv) &&
-           fb_rat_mul(&cfg.frame_sr, &cfg.frame_sr, &inv) &&
-           fb_rat_mul(&cfg.frame_si, &cfg.frame_si, &inv);
-      fb_rat_free(&inv);
+      canor_big_rat_t inv;
+      canor_big_rat_init(&inv);
+      ok = (canor_big_rat_inv(&inv, &z) == CANOR_OK) &&
+           (canor_big_rat_mul(&cfg.frame_sr, &cfg.frame_sr, &inv) == CANOR_OK) &&
+           (canor_big_rat_mul(&cfg.frame_si, &cfg.frame_si, &inv) == CANOR_OK);
     }
-    fb_rat_free(&z);
     if (!ok) {
       fprintf(stderr, "follow: --zoom wants a positive rational, got '%s'\n", zoom);
       return 2;
     }
   }
-  if (fb_rat_cmp_i64(&cfg.frame_sr, 0) <= 0 ||
-      fb_rat_cmp_i64(&cfg.frame_si, 0) <= 0) {
+  if (canor_big_rat_cmp_i64(&cfg.frame_sr, 0, NULL) <= 0 ||
+      canor_big_rat_cmp_i64(&cfg.frame_si, 0, NULL) <= 0) {
     fprintf(stderr, "follow: frame span must be positive\n");
     return 2;
   }
-  fb_budget_set(cfg.budget);
+  /* The library's capacity is fixed at build time (CANOR_BIG_LIMBS_MAX); the
+   * budget can only narrow it, so a wider request is refused, not clamped. */
+  if (cfg.budget == 0) cfg.budget = CANOR_BIG_LIMBS_MAX;
+  if (cfg.budget > CANOR_BIG_LIMBS_MAX) {
+    fprintf(stderr, "follow: --budget %lu exceeds CANOR_BIG_LIMBS_MAX (%d)\n",
+            (unsigned long)cfg.budget, CANOR_BIG_LIMBS_MAX);
+    return 2;
+  }
+  canor_demo_set_value_limbs(cfg.budget);
 
   if (!want && cfg.default_strategy[0]) want = cfg.default_strategy;
   if (want) {

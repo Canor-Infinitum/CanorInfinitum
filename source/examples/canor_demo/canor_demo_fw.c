@@ -34,9 +34,13 @@ typedef struct {
   const fw_atom *at;
 } fwv_base;
 
+/* Largest .fw source the demo reads. */
+#define CANOR_DEMO_FW_TEXT_MAX (1u << 20)
+
 int canor_demo_cmd_fw(const canor_demo_config_t *cfg, const char *path, const char *out) {
-  char *text;
-  long len = 0;
+  /* The source is read into a caller-placed buffer (no heap in the core). */
+  static char text[CANOR_DEMO_FW_TEXT_MAX];
+  size_t len = 0;
   static fw_doc doc;
   fwv_base b[FWV_BASES];
   int i, j, k, nop = 0, nconst = 0, neq = 0, ndecl = 0;
@@ -46,14 +50,16 @@ int canor_demo_cmd_fw(const canor_demo_config_t *cfg, const char *path, const ch
 
   canor_demo_check_fail = canor_demo_check_ran = 0;
   if (!path) path = "examples/memristive.fw";
-  text = fw_read_file(path, &len);
-  if (!text) { fprintf(stderr, "follow: cannot read %s\n", path); return 2; }
+  if (fw_read_file(path, text, sizeof text, &len) != CANOR_OK) {
+    fprintf(stderr, "follow: cannot read %s (missing, or larger than %u bytes)\n",
+            path, (unsigned)sizeof text - 1u);
+    return 2;
+  }
 
-  printf("FollowLang Master-Strategy: %s (%ld bytes)\n\n", path, len);
+  printf("FollowLang Master-Strategy: %s (%ld bytes)\n\n", path, (long)len);
 
   if (!fw_parse(text, &doc)) {
     fprintf(stderr, "follow: %s:%d: %s\n", path, doc.err_line, doc.err);
-    free(text);
     return 2;
   }
   printf("  parsed %d atoms\n", doc.n);
@@ -484,7 +490,6 @@ int canor_demo_cmd_fw(const canor_demo_config_t *cfg, const char *path, const ch
     canor_demo_prov_write_sidecar(out);
   }
 
-  free(text);
   printf("\n%d checks, %d failures\n", canor_demo_check_ran, canor_demo_check_fail);
   return canor_demo_check_fail ? 1 : 0;
 }

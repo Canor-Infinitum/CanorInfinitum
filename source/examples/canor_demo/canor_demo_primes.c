@@ -118,9 +118,9 @@ int canor_demo_cmd_primes(void) {
   printf("\n  L_m(n; Theta, Phi) = exp( (1/n!).{Order_m - X}.exp(Theta+Phi.i) )\n\n");
   printf("  The RATIO (Order_m - X)/n! is exact and its limit separates the\n");
   printf("  four MetaFlow classes outright. The VALUE needs exp of a complex\n");
-  printf("  argument and is report-layer double; both are shown, and which is\n");
-  printf("  which is marked.\n\n");
-  printf("  %-14s %6s %16s %-16s %s\n", "class", "n", "log2 ratio", "limit class", "|L| (double)");
+  printf("  argument: a truncated exact-rational series, reported in Q20 and\n");
+  printf("  marked deterministic; |L| below is a display of that Q20 value.\n\n");
+  printf("  %-14s %6s %16s %-16s %s\n", "class", "n", "log2 ratio", "limit class", "|L| (from Q20)");
   {
     static const uint64_t ns[3] = { 6, 12, 24 };
     int c, j;
@@ -128,23 +128,27 @@ int canor_demo_cmd_primes(void) {
       for (j = 0; j < 3; ++j) {
         canor_residual r;
         double mag;
-        if (!canor_residual_L((canor_kclass)c, ns[j], 0, 0.0, 0.0, &r)) continue;
-        mag = sqrt(r.value_re * r.value_re + r.value_im * r.value_im);
+        if (!canor_residual_L((canor_kclass)c, ns[j], 0, canor_rat(0, 1), canor_rat(0, 1), &r)) continue;
+        {
+          /* Display only: the residual itself is the Q20 integer pair. */
+          double re = (double)r.value_re_q20 / (double)(1 << CANOR_RESIDUAL_Q);
+          double im = (double)r.value_im_q20 / (double)(1 << CANOR_RESIDUAL_Q);
+          mag = sqrt(re * re + im * im);
+        }
         printf("  %-14s %6llu %16lld %-16s %.4g %s\n",
                c == 0 ? "General" : c == 1 ? "Specific" :
                c == 2 ? "Distinctive" : "Arbitrary",
                (unsigned long long)ns[j], (long long)r.log2_ratio_milli,
                canor_resid_class_name(r.cls), mag,
                r.deterministic ? "det" : "-");
-        canor_residual_free(&r);
       }
   }
   {
     canor_residual g6, g24, s6, d6;
-    canor_residual_L(CANOR_K_GENERAL, 6, 0, 0.0, 0.0, &g6);
-    canor_residual_L(CANOR_K_GENERAL, 24, 0, 0.0, 0.0, &g24);
-    canor_residual_L(CANOR_K_SPECIFIC, 6, 0, 0.0, 0.0, &s6);
-    canor_residual_L(CANOR_K_DISTINCTIVE, 6, 0, 0.0, 0.0, &d6);
+    canor_residual_L(CANOR_K_GENERAL, 6, 0, canor_rat(0, 1), canor_rat(0, 1), &g6);
+    canor_residual_L(CANOR_K_GENERAL, 24, 0, canor_rat(0, 1), canor_rat(0, 1), &g24);
+    canor_residual_L(CANOR_K_SPECIFIC, 6, 0, canor_rat(0, 1), canor_rat(0, 1), &s6);
+    canor_residual_L(CANOR_K_DISTINCTIVE, 6, 0, canor_rat(0, 1), canor_rat(0, 1), &d6);
     pcheck(g24.log2_ratio_milli < g6.log2_ratio_milli,
            "General's ratio falls as n rises - it vanishes against n!");
     pcheck(g6.cls == CANOR_RESID_UNIT, "General is the unit class, L -> 1");
@@ -157,16 +161,12 @@ int canor_demo_cmd_primes(void) {
      * two independent evaluations must agree bit for bit. */
     {
       canor_residual a, b;
-      canor_residual_L(CANOR_K_SPECIFIC, 8, 0, 0.25, 0.5, &a);
-      canor_residual_L(CANOR_K_SPECIFIC, 8, 0, 0.25, 0.5, &b);
-      pcheck(fb_rat_cmp(&a.exact_re, &b.exact_re) == 0 &&
-             fb_rat_cmp(&a.exact_im, &b.exact_im) == 0,
+      canor_residual_L(CANOR_K_SPECIFIC, 8, 0, canor_rat(1, 4), canor_rat(1, 2), &a);
+      canor_residual_L(CANOR_K_SPECIFIC, 8, 0, canor_rat(1, 4), canor_rat(1, 2), &b);
+      pcheck(canor_big_rat_cmp(&a.exact_re, &b.exact_re, NULL) == 0 &&
+             canor_big_rat_cmp(&a.exact_im, &b.exact_im, NULL) == 0,
              "two evaluations agree exactly - reproducible, hence stampable");
-      canor_residual_free(&a);
-      canor_residual_free(&b);
     }
-    canor_residual_free(&g6); canor_residual_free(&g24);
-    canor_residual_free(&s6); canor_residual_free(&d6);
   }
   printf("\n  So the residual function is a fourth independent route to the same\n"
          "  four-way split the Kapprox ladder, the MetaFlow axis and the\n"

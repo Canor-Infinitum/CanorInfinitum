@@ -599,11 +599,10 @@ int canor_demo_cmd_spacetime(const canor_demo_config_t *c, int sel, const char *
       canor_residual res;
       double amp = 0.06;
       ex_bracket b01, b12, b20;
-      if (canor_residual_L(CANOR_K_GENERAL, (uint64_t)(q + 1), 500, 0.0, 0.0, &res)) {
+      if (canor_residual_L(CANOR_K_GENERAL, (uint64_t)(q + 1), 500, canor_rat(0, 1), canor_rat(0, 1), &res)) {
         double lg = (double)res.log2_ratio_milli / 1000.0;
         if (lg < 0) lg = -lg;
         amp = 0.03 + 0.05 * (lg / (1.0 + lg));
-        canor_residual_free(&res);
       }
       bump_a[q] = amp;
       ex_bracket_of(spread.u[q][0], spread.u[q][1], &b01);

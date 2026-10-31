@@ -26,7 +26,7 @@
  * continuous function; drawing only the steps would hide the structure the eye
  * is there to find. So both, always, with the steps drawn on top.
  *
- * The polynomial is evaluated in EXACT rationals through fb_rat, then converted
+ * The polynomial is evaluated in EXACT rationals through canor_big_rat_t, then converted
  * to a coordinate at the last moment. Evaluating in floating point would put
  * rounding inside the one artifact whose whole claim is exactness - and the
  * error would be invisible, because a slightly wrong curve still looks like a
@@ -45,45 +45,41 @@
 
 /* Lagrange value at x = num/den, exactly. y[] are the period's sample values. */
 static bool graph_lagrange(const canor_rational *y, int p, long num, long den,
-                           fb_rat *out) {
-  fb_rat term, acc, x, node, diff, w;
+                           canor_big_rat_t *out) {
+  canor_big_rat_t term, acc, x, node, diff, w;
   int i, k;
   bool ok = true;
 
-  fb_rat_init(&term); fb_rat_init(&acc); fb_rat_init(&x);
-  fb_rat_init(&node); fb_rat_init(&diff); fb_rat_init(&w);
-  if (!fb_rat_set_i64(&acc, 0, 1) || !fb_rat_set_i64(&x, num, den)) ok = false;
+  canor_big_rat_init(&term); canor_big_rat_init(&acc); canor_big_rat_init(&x);
+  canor_big_rat_init(&node); canor_big_rat_init(&diff); canor_big_rat_init(&w);
+  if (canor_big_rat_set_i64(&acc, 0, 1) != CANOR_OK || canor_big_rat_set_i64(&x, num, den) != CANOR_OK) ok = false;
 
   for (i = 0; ok && i < p; ++i) {
-    if (!fb_rat_set_i64(&term, y[i].num, y[i].den)) { ok = false; break; }
+    if (canor_big_rat_set_i64(&term, y[i].num, y[i].den) != CANOR_OK) { ok = false; break; }
     for (k = 0; ok && k < p; ++k) {
       if (k == i) continue;
       /* (x - k) / (i - k) */
-      if (!fb_rat_set_i64(&node, k, 1) ||
-          !fb_rat_sub(&diff, &x, &node) ||
-          !fb_rat_set_i64(&w, i - k, 1)) { ok = false; break; }
+      if (canor_big_rat_set_i64(&node, k, 1) != CANOR_OK ||
+          canor_big_rat_sub(&diff, &x, &node) != CANOR_OK ||
+          canor_big_rat_set_i64(&w, i - k, 1) != CANOR_OK) { ok = false; break; }
       {
-        fb_rat inv;
-        fb_rat_init(&inv);
-        ok = fb_copy(&inv.num, &w.den) && fb_copy(&inv.den, &w.num) &&
-             fb_rat_normalize(&inv) &&
-             fb_rat_mul(&diff, &diff, &inv) &&
-             fb_rat_mul(&term, &term, &diff);
-        fb_rat_free(&inv);
+        canor_big_rat_t inv;
+        canor_big_rat_init(&inv);
+        ok = (canor_big_rat_inv(&inv, &w) == CANOR_OK) &&
+             (canor_big_rat_mul(&diff, &diff, &inv) == CANOR_OK) &&
+             (canor_big_rat_mul(&term, &term, &diff) == CANOR_OK);
       }
     }
-    if (ok && !fb_rat_add(&acc, &acc, &term)) ok = false;
+    if (ok && canor_big_rat_add(&acc, &acc, &term) != CANOR_OK) ok = false;
   }
-  if (ok) ok = fb_rat_copy(out, &acc);
-  fb_rat_free(&term); fb_rat_free(&acc); fb_rat_free(&x);
-  fb_rat_free(&node); fb_rat_free(&diff); fb_rat_free(&w);
+  if (ok) *out = acc;
   return ok;
 }
 
 /* Rational -> double, at the very last step and nowhere earlier. */
-static double graph_to_double(const fb_rat *q) {
+static double graph_to_double(const canor_big_rat_t *q) {
   int64_t fixed;
-  if (!fb_rat_to_fixed(&q->num, &q->den, 20, &fixed)) return 0.0;
+  if (canor_big_rat_to_fixed(&q->num, &q->den, 20, &fixed) != CANOR_OK) return 0.0;
   return (double)fixed / (double)(1 << 20);
 }
 
@@ -225,15 +221,14 @@ static void graph_operator_svg(FILE *f, const canor_ore *o, int op,
   for (j = 0; j <= GRAPH_PER_TURN * GRAPH_TURNS; ++j) {
     long num = (long)p * j - 2L * p * GRAPH_PER_TURN, den = GRAPH_PER_TURN;
     long modnum = num % ((long)p * den);
-    fb_rat v;
+    canor_big_rat_t v;
     if (modnum < 0) modnum += (long)p * den;
-    fb_rat_init(&v);
+    canor_big_rat_init(&v);
     if (graph_lagrange(y, p + 1, modnum, den, &v)) {
       double val = graph_to_double(&v);
       if (val < lo) lo = val;
       if (val > hi) hi = val;
     }
-    fb_rat_free(&v);
   }
   if (hi - lo < 1e-9) { lo -= 1.0; hi += 1.0; }
   { double span = hi - lo; lo -= span * 0.10; hi += span * 0.10; }
@@ -266,13 +261,12 @@ static void graph_operator_svg(FILE *f, const canor_ore *o, int op,
   for (j = 0; j <= GRAPH_PER_TURN * GRAPH_TURNS; ++j) {
     long num = (long)p * j - 2L * p * GRAPH_PER_TURN, den = GRAPH_PER_TURN;
     long modnum = num % ((long)p * den);
-    fb_rat v;
+    canor_big_rat_t v;
     double val, x, yy;
     if (modnum < 0) modnum += (long)p * den;
-    fb_rat_init(&v);
-    if (!graph_lagrange(y, p + 1, modnum, den, &v)) { fb_rat_free(&v); continue; }
+    canor_big_rat_init(&v);
+    if (!graph_lagrange(y, p + 1, modnum, den, &v)) continue;
     val = graph_to_double(&v);
-    fb_rat_free(&v);
     x = PADL + (double)plotw * j / (GRAPH_PER_TURN * GRAPH_TURNS);
     yy = PADT + ploth * (hi - val) / (hi - lo);
     fprintf(f, "%.2f,%.2f ", x, yy);

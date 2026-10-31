@@ -221,19 +221,16 @@ int canor_demo_cmd_mfbuild(const canor_demo_config_t *c, int sel, const char *ou
     int ok = 1;
     tier[ti].npts = 0;
     for (i = 0; i < 40; ++i) {
-      fb_rat v;
+      canor_big_rat_t v;
       canor_ml_report rep;
       int64_t fx = 0;
       canor_rational tt = canor_rat(i, 8);
-      fb_rat_init(&v);
+      canor_big_rat_init(&v);
       if (!canor_fractional_relax(canor_rat(tier[ti].alpha_num, tier[ti].alpha_den),
                                canor_rat((int64_t)(tier[ti].lambda * 1000), 1000),
-                               tt, 64, &v, &rep) || !rep.ok) {
-        fb_rat_free(&v); ok = 0; break;
-      }
-      if (fb_rat_to_fixed(&v.num, &v.den, 20, &fx))
+                               tt, 64, &v, &rep) || !rep.ok) { ok = 0; break; }
+      if (canor_big_rat_to_fixed(&v.num, &v.den, 20, &fx) == CANOR_OK)
         tier[ti].curve[tier[ti].npts++] = (double)fx / 1048576.0;
-      fb_rat_free(&v);
     }
     tier[ti].ok = ok && tier[ti].npts > 1;
     printf("    %-11s alpha=1/%d lambda=%.3f  %d samples  %s\n",
@@ -253,22 +250,21 @@ int canor_demo_cmd_mfbuild(const canor_demo_config_t *c, int sel, const char *ou
    * because the orders were wrong, but because the test was. A dedicated pair
    * at one lambda isolates alpha, which is what the claim is about. */
   {
-    fb_rat a1, a3;
+    canor_big_rat_t a1, a3;
     canor_ml_report r1, r3;
     int64_t f1 = 0, f3 = 0;
     canor_rational lam = canor_rat(1, 2), tt = canor_rat(5, 1);
-    fb_rat_init(&a1); fb_rat_init(&a3);
+    canor_big_rat_init(&a1); canor_big_rat_init(&a3);
     if (canor_fractional_relax(canor_rat(1, 1), lam, tt, 64, &a1, &r1) && r1.ok &&
         canor_fractional_relax(canor_rat(1, 3), lam, tt, 64, &a3, &r3) && r3.ok &&
-        fb_rat_to_fixed(&a1.num, &a1.den, 20, &f1) &&
-        fb_rat_to_fixed(&a3.num, &a3.den, 20, &f3)) {
+        (canor_big_rat_to_fixed(&a1.num, &a1.den, 20, &f1) == CANOR_OK) &&
+        (canor_big_rat_to_fixed(&a3.num, &a3.den, 20, &f3) == CANOR_OK)) {
       printf("    at equal lambda=1/2, t=5:  alpha=1 -> %.6f   alpha=1/3 -> %.6f\n",
              (double)f1 / 1048576.0, (double)f3 / 1048576.0);
       canor_demo_check(f3 > f1, "at equal lambda, lower alpha leaves the heavier tail");
     } else {
       canor_demo_check(0, "the equal-lambda tail comparison evaluated");
     }
-    fb_rat_free(&a1); fb_rat_free(&a3);
   }
 
   /* --- voxelization of the leaves ------------------------------------------- */

@@ -67,6 +67,16 @@ Append-only. Format: `YYYY-MM-DD — Decision — Why — Source`.
   - **`canor_fw`:** `fw_read_file` reads into a caller buffer.
   - **Tests:** `canor_test_big`, `canor_test_containers`.
   - **Known break:** `source/examples/canor_demo/` no longer compiles because it still uses `fb_*`, `vt_*` and the old signatures; examples are tracked separately. — User approval (fix requested). — `canor_big.h`, `canor_golay.h`, `canor_index.h`, `canor_flow.h`.
+- 2026-10-22 — **`canor_demo` ported to the fixed-capacity APIs** (fixes the break above). It builds with the 2026-10-20 line and shows only the 5 warnings that were already there. All 51 commands give the same exit codes as the pre-port build, no check fails, and 45 produce byte-identical stdout. Changes:
+  - **Budget:** `--budget` / `budget_limbs` is now a per-value limb cap ≤ `CANOR_BIG_LIMBS_MAX` (0 = the maximum; a larger value is refused). The `peakKB` column is gone.
+  - **Capacity for deep orbits:** at the default 128 limbs, `mandel` fuel ≥ 10 and deep `describe` orbits report as undetermined. Build with `-DCANOR_BIG_LIMBS_MAX=1024` to reproduce the old output exactly; it runs on the default stack.
+  - **Expected differences:**
+    - `golay` telemetry is printed in integer milli-units;
+    - `poly`'s E_{1/2} closed-form check went from 1.4e-5 to 2.3e-7 (its assertion tightened from 5e-5 to 1e-6);
+    - the Arbitrary-class order moved by ≤ 0.004% (integer `exp2`);
+    - `scene`'s α = 1/2 curve moved by ≤ 1e-5.
+  - **Library fix found by the comparison:** the Mittag-Leffler stop test in `src/canor_poly.c` is now exact (the term truncates to zero in Q20) instead of a ±1-bit width estimate. This restores E_{1/4} at t = 4 (0.377376).
+  - — User request. — `source/examples/canor_demo/`.
 
 ## Canonical Module Mapping (Approved)
 | Module Name | Target Header / Source | Destination |
@@ -107,10 +117,13 @@ Append-only. Format: `YYYY-MM-DD — Decision — Why — Source`.
 - [ ] Digest algorithm: profile-defined; being specified in the United/Elite session. Generator writes `unset`.
 - [ ] Soul grayscale conversion and realification/complexification form: profile-defined, `unset`.
 - [x] Legacy modules violated invariants 1–2: ported 2026-10-22 (entry above).
-- [ ] `source/examples/canor_demo/` must move to the ported APIs (`canor_big_*`, `canor_golay_tele_*`, M24 workspace, fixed-capacity flow/index containers, `fw_read_file` buffer, Q20 residual values).
+- [x] `source/examples/canor_demo/` moved to the ported APIs (2026-10-22, entry above).
 - [ ] Legacy non-`canor_*` identifiers remain in `canor_golay` (`golay_*`, `m24_*`, `prov_*`) and `canor_fw` (`fw_*`); renaming needs its own pass.
 - [ ] Elite: digest and signature algorithms, trust roots, revocation, signature lifecycle (profile-defined; `canor_elite` calls the profile's pure digest/verify functions and reports UNDEFINED while unset).
 - [ ] Elite: error-category taxonomy (anti-cheat, anti-malware / anti-virus, …) and each category's metric, scale and bound; metrics other than `gram-linf` are measured outside the core.
 - [ ] Elite: certification rule. Current: recompute, then E_recomputed ⊆ E_claimed ⊆ A ⊆ B. Alternative: a tolerance band.
 - [ ] Elite: candidate-ordering schema beyond the declared lexicographic order, and the Aether §9 latency/jitter field per branch traversal (needs `canor_timing`).
 - [x] Elite surface syntax and nested replacement: freeform line-based rules (2026-10-20).
+- [x] Action source spelling: `L = R (mod N)` inside a `%` modulation is the congruence form (2026-10-22, user confirmed).
+- [x] `/elite` skill aligned with the freeform Elite syntax: `.fwh` = Canor header (provenance, basis, tooling, direction, limit), `.fwb` = pure Elite source, since Elite has no comment syntax (2026-10-22).
+- [x] Language skills (`/flow` … `/aether`) regenerated from one shared template (2026-10-22). Kept: the decided facts merged in by other sessions (representations, categories, Ore Strategies, MetaFlow fractal string, enumeration sizes, `canor_field3_t`, complementary languages) plus the pinned `.ini` key classes. Dropped: platform asides (Zephyr / sandbox / WASM paragraphs). Restored: the user's original `/aether` intent questions. The skills are the language templates for the `*-intent` rewrite.

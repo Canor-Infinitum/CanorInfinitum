@@ -408,7 +408,13 @@ bool canor_mittag_leffler(canor_rational alpha, canor_rational beta, canor_ratio
     if (st) break;
     {
       int mag = rat_mag_bits(&term);
-      bool negligible = canor_big_is_zero(&term.num) || mag < -POLY_ML_ABS_BITS;
+      int64_t fx = 0;
+      /* Negligible exactly when the term truncates to zero in Q20 - an exact
+       * test, where the bit-count estimate above is only good to one bit. */
+      bool negligible = canor_big_is_zero(&term.num) ||
+                        (mag < 0 && canor_big_rat_to_fixed(&term.num, &term.den,
+                                                           POLY_ML_ABS_BITS, &fx) == CANOR_OK &&
+                         fx == 0);
       if (!negligible && (!have_peak || mag > peak_bits)) { peak_bits = mag; have_peak = 1; }
       else if (k > POLY_ML_WARMUP && have_peak &&
                (negligible || peak_bits - mag > POLY_ML_REL_BITS)) {

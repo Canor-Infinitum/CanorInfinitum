@@ -32,38 +32,45 @@ static const char eclass_char[4] = { '.', '#', '+', '?' };
 #define Q 32
 #define ONE (1LL << Q)
 
-/* --- the exact path, in arbitrary precision --------------------------------
- * No overflow is possible; the limit is the limb budget, and hitting it is
- * reported rather than absorbed. `bits` reports the widest value the orbit
- * held, which is what the sweep is really measuring: how fast exactness costs
- * memory. */
-int canor_demo_escape_exact(const fb_rat *cr, const fb_rat *ci, int fuel,
+/* --- the exact path, in bounded precision ----------------------------------
+ * No overflow is possible; the limit is the per-value limb budget (at most
+ * CANOR_BIG_LIMBS_MAX), and hitting it is reported rather than absorbed.
+ * `bits` reports the widest value the orbit held, which is what the sweep is
+ * really measuring: how fast exactness costs width. */
+static size_t g_value_limbs = CANOR_BIG_LIMBS_MAX;
+
+void canor_demo_set_value_limbs(size_t limbs) {
+  g_value_limbs = (limbs == 0 || limbs > CANOR_BIG_LIMBS_MAX) ? CANOR_BIG_LIMBS_MAX : limbs;
+}
+size_t canor_demo_value_limbs(void) { return g_value_limbs; }
+
+int canor_demo_escape_exact(const canor_big_rat_t *cr, const canor_big_rat_t *ci, int fuel,
                         int *steps, int *bits) {
-  fb_rat zr, zi, zr2, zi2, mag, nr, ni, two;
+  canor_big_rat_t zr, zi, zr2, zi2, mag, nr, ni, two;
   int i, res = 0;
-  fb_rat_init(&zr); fb_rat_init(&zi); fb_rat_init(&zr2); fb_rat_init(&zi2);
-  fb_rat_init(&mag); fb_rat_init(&nr); fb_rat_init(&ni); fb_rat_init(&two);
+  canor_big_rat_init(&zr); canor_big_rat_init(&zi); canor_big_rat_init(&zr2); canor_big_rat_init(&zi2);
+  canor_big_rat_init(&mag); canor_big_rat_init(&nr); canor_big_rat_init(&ni); canor_big_rat_init(&two);
   *bits = 0;
   *steps = 0;
-  if (!fb_rat_set_i64(&zr, 0, 1) || !fb_rat_set_i64(&zi, 0, 1) ||
-      !fb_rat_set_i64(&two, 2, 1)) res = -1;
+  if (canor_big_rat_set_i64(&zr, 0, 1) != CANOR_OK || canor_big_rat_set_i64(&zi, 0, 1) != CANOR_OK ||
+      canor_big_rat_set_i64(&two, 2, 1) != CANOR_OK) res = -1;
   for (i = 0; res == 0 && i < fuel; ++i) {
     int b;
-    if (!fb_rat_mul(&zr2, &zr, &zr) || !fb_rat_mul(&zi2, &zi, &zi) ||
-        !fb_rat_add(&mag, &zr2, &zi2)) { res = -1; break; }
-    if (fb_rat_cmp_i64(&mag, 4) > 0) { res = 1; break; }
+    if (canor_big_rat_mul(&zr2, &zr, &zr) != CANOR_OK || canor_big_rat_mul(&zi2, &zi, &zi) != CANOR_OK ||
+        canor_big_rat_add(&mag, &zr2, &zi2) != CANOR_OK) { res = -1; break; }
+    if (canor_big_rat_cmp_i64(&mag, 4, NULL) > 0) { res = 1; break; }
     /* z <- (zr^2 - zi^2 + cr) + (2 zr zi + ci) i */
-    if (!fb_rat_sub(&nr, &zr2, &zi2) || !fb_rat_add(&nr, &nr, cr) ||
-        !fb_rat_mul(&ni, &zr, &zi) || !fb_rat_mul(&ni, &ni, &two) ||
-        !fb_rat_add(&ni, &ni, ci)) { res = -1; break; }
-    if (!fb_rat_copy(&zr, &nr) || !fb_rat_copy(&zi, &ni)) { res = -1; break; }
-    b = fb_rat_bits(&zr);
-    { int bi = fb_rat_bits(&zi); if (bi > b) b = bi; }
+    if (canor_big_rat_sub(&nr, &zr2, &zi2) != CANOR_OK || canor_big_rat_add(&nr, &nr, cr) != CANOR_OK ||
+        canor_big_rat_mul(&ni, &zr, &zi) != CANOR_OK || canor_big_rat_mul(&ni, &ni, &two) != CANOR_OK ||
+        canor_big_rat_add(&ni, &ni, ci) != CANOR_OK) { res = -1; break; }
+    zr = nr;
+    zi = ni;
+    b = canor_big_rat_bits(&zr);
+    { int bi = canor_big_rat_bits(&zi); if (bi > b) b = bi; }
     if (b > *bits) *bits = b;
+    if ((size_t)b > g_value_limbs * CANOR_BIG_LIMB_BITS) { res = -1; break; }
   }
   *steps = i;
-  fb_rat_free(&zr); fb_rat_free(&zi); fb_rat_free(&zr2); fb_rat_free(&zi2);
-  fb_rat_free(&mag); fb_rat_free(&nr); fb_rat_free(&ni); fb_rat_free(&two);
   return res;
 }
 
@@ -100,15 +107,14 @@ static escape_class classify(int ex, int fx) {
  * rational, and no step leaves the field. That is what makes a deep zoom
  * meaningful here - the grid does not lose the precision the orbit is about to
  * spend. */
-static bool frame_point(fb_rat *out, const fb_rat *centre, const fb_rat *span,
+static bool frame_point(canor_big_rat_t *out, const canor_big_rat_t *centre, const canor_big_rat_t *span,
                         int idx, int n) {
-  fb_rat off;
+  canor_big_rat_t off;
   bool ok;
-  fb_rat_init(&off);
-  ok = fb_rat_set_i64(&off, 2 * (int64_t)idx + 1 - n, 2 * (int64_t)n) &&
-       fb_rat_mul(&off, &off, span) &&
-       fb_rat_add(out, centre, &off);
-  fb_rat_free(&off);
+  canor_big_rat_init(&off);
+  ok = (canor_big_rat_set_i64(&off, 2 * (int64_t)idx + 1 - n, 2 * (int64_t)n) == CANOR_OK) &&
+       (canor_big_rat_mul(&off, &off, span) == CANOR_OK) &&
+       (canor_big_rat_add(out, centre, &off) == CANOR_OK);
   return ok;
 }
 
@@ -117,11 +123,11 @@ typedef struct { long n[4]; int maxbits; int maxsteps; } pass_result;
 static bool mandel_pass(const canor_demo_config_t *c, int fuel, pass_result *pr,
                         char *canvas) {
   const int w = c->set.grid_w, h = c->set.grid_h;
-  fb_rat cr, ci;
+  canor_big_rat_t cr, ci;
   bool ok = true;
   int x, y;
   memset(pr, 0, sizeof *pr);
-  fb_rat_init(&cr); fb_rat_init(&ci);
+  canor_big_rat_init(&cr); canor_big_rat_init(&ci);
   for (y = 0; y < h && ok; ++y) {
     if (!frame_point(&ci, &c->frame_ci, &c->frame_si, y, h)) { ok = false; break; }
     for (x = 0; x < w; ++x) {
@@ -134,8 +140,8 @@ static bool mandel_pass(const canor_demo_config_t *c, int fuel, pass_result *pr,
        * coordinate no longer fits 32 fractional bits, and that is precisely
        * when the two paths should be expected to disagree - so a projection
        * failure is reported as a disagreement, not hidden. */
-      if (fb_rat_to_fixed(&cr.num, &cr.den, Q, &qr) &&
-          fb_rat_to_fixed(&ci.num, &ci.den, Q, &qi))
+      if ((canor_big_rat_to_fixed(&cr.num, &cr.den, Q, &qr) == CANOR_OK) &&
+          (canor_big_rat_to_fixed(&ci.num, &ci.den, Q, &qi) == CANOR_OK))
         fx = escape_fixed(qr, qi, fuel);
       else
         fx = ex == 1 ? 0 : 1;
@@ -146,7 +152,6 @@ static bool mandel_pass(const canor_demo_config_t *c, int fuel, pass_result *pr,
       if (canvas) canvas[(size_t)y * w + x] = eclass_char[k];
     }
   }
-  fb_rat_free(&cr); fb_rat_free(&ci);
   return ok;
 }
 
@@ -189,7 +194,7 @@ int canor_demo_cmd_describe(const canor_demo_config_t *c) {
   const long total = (long)w * h;
   long cls[CANOR_DEMO_AXIS_N] = { 0, 0, 0, 0 };
   long esc[CANOR_DEMO_AXIS_N] = { 0, 0, 0, 0 };
-  fb_rat cr, ci;
+  canor_big_rat_t cr, ci;
   char *canvas;
   int x, y, i;
   bool ok = true;
@@ -204,7 +209,7 @@ int canor_demo_cmd_describe(const canor_demo_config_t *c) {
            (long long)canor_kapprox_order_milli(c->meta[i].kclass, (uint64_t)n));
   printf("\n");
 
-  fb_rat_init(&cr); fb_rat_init(&ci);
+  canor_big_rat_init(&cr); canor_big_rat_init(&ci);
   for (y = 0; y < h && ok; ++y) {
     if (!frame_point(&ci, &c->frame_ci, &c->frame_si, y, h)) { ok = false; break; }
     for (x = 0; x < w; ++x) {
@@ -224,7 +229,6 @@ int canor_demo_cmd_describe(const canor_demo_config_t *c) {
       canvas[(size_t)y * w + x] = "GSDA"[k];
     }
   }
-  fb_rat_free(&cr); fb_rat_free(&ci);
   if (!ok) { free(canvas); fprintf(stderr, "follow: budget exhausted\n"); return 2; }
 
   printf("  %-14s %8s %8s %10s\n", "class", "points", "share", "of those,");
@@ -250,29 +254,27 @@ int canor_demo_cmd_mandel(const canor_demo_config_t *c) {
   int f, map_fuel = 1, y, x;
 
   printf("frame       centre ");
-  fb_rat_format(&c->frame_cr, fbuf, sizeof fbuf); printf("%s", fbuf);
-  fb_rat_format(&c->frame_ci, fbuf, sizeof fbuf); printf(" %s i\n", fbuf);
+  canor_big_rat_format(&c->frame_cr, fbuf, sizeof fbuf); printf("%s", fbuf);
+  canor_big_rat_format(&c->frame_ci, fbuf, sizeof fbuf); printf(" %s i\n", fbuf);
   printf("            span   ");
-  fb_rat_format(&c->frame_sr, fbuf, sizeof fbuf); printf("%s", fbuf);
-  fb_rat_format(&c->frame_si, fbuf, sizeof fbuf); printf(" x %s\n", fbuf);
+  canor_big_rat_format(&c->frame_sr, fbuf, sizeof fbuf); printf("%s", fbuf);
+  canor_big_rat_format(&c->frame_si, fbuf, sizeof fbuf); printf(" x %s\n", fbuf);
   printf("grid        %d x %d, cell centres, exact rational\n", w, h);
-  printf("budget      %lu limbs (%lu KB)\n\n",
-         (unsigned long)fb_budget_get(),
-         (unsigned long)(fb_budget_get() * 4 / 1024));
+  printf("budget      %lu limbs per value (%lu bits)\n\n",
+         (unsigned long)canor_demo_value_limbs(),
+         (unsigned long)(canor_demo_value_limbs() * CANOR_BIG_LIMB_BITS));
 
-  printf("fuel sweep - arbitrary precision, so the cost is memory, not overflow\n");
-  printf("  %5s %9s %9s %9s %9s %8s %8s\n",
-         "fuel", "escaped", "bounded", "boundary", "undet.", "maxbits", "peakKB");
+  printf("fuel sweep - exact rationals, so the cost is width, not overflow\n");
+  printf("  %5s %9s %9s %9s %9s %8s\n",
+         "fuel", "escaped", "bounded", "boundary", "undet.", "maxbits");
   for (f = 1; f <= c->set.fuel; ++f) {
-    fb_budget_reset_peak();
     if (!mandel_pass(c, f, &pr, NULL)) {
       printf("  %5d  (budget exhausted before the pass completed)\n", f);
       break;
     }
-    printf("  %5d %8.1f%% %8.1f%% %8.1f%% %8.1f%% %8d %8lu\n", f,
+    printf("  %5d %8.1f%% %8.1f%% %8.1f%% %8.1f%% %8d\n", f,
            100.0 * pr.n[0] / total, 100.0 * pr.n[1] / total,
-           100.0 * pr.n[2] / total, 100.0 * pr.n[3] / total, pr.maxbits,
-           (unsigned long)(fb_budget_used() * 4 / 1024));
+           100.0 * pr.n[2] / total, 100.0 * pr.n[3] / total, pr.maxbits);
     /* Deepest fuel still mostly decidable. Choosing the fuel with the fewest
      * undetermined would trivially choose 1, where nothing has had a chance to
      * exhaust anything and nothing has escaped either. */

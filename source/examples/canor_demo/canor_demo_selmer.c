@@ -202,10 +202,9 @@ static bool sl_build(const canor_demo_config_t *c, int sel, const canor_demo_clo
      * residual is a deterministic function of the measurement and of nothing
      * outside it. theta/phi are report-layer only and do not move the class. */
     if (canor_residual_L(CANOR_K_GENERAL, (uint64_t)(u + 1), (int64_t)at->flow[u],
-                      0.0, 0.0, &res)) {
+                      canor_rat(0, 1), canor_rat(0, 1), &res)) {
       at->rcls[u] = res.cls;
       at->rlog2[u] = res.log2_ratio_milli;
-      canor_residual_free(&res);
     } else {
       at->rcls[u] = CANOR_RESID_UNDEFINED;
     }

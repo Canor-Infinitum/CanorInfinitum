@@ -172,11 +172,16 @@ int canor_demo_cmd_excite(const canor_demo_config_t *c, int sel) {
   printf("  buckets are orbits, so the compression is the group's, not ours\n\n");
   printf("  %6s %12s %8s   %s\n", "weight", "subsets", "buckets", "orbit sizes");
   {
+    /* The orbit search's workspace is the caller's: a 2 MB visited bitset and
+     * a frontier queue, static so the census allocates nothing. */
+    static uint64_t visited[CANOR_GOLAY_M24_VISITED_WORDS];
+    static uint32_t queue[CANOR_GOLAY_M24_QUEUE_MAX];
+    const canor_golay_m24_ws_t ws = { visited, queue, CANOR_GOLAY_M24_QUEUE_MAX };
     int wt;
     for (wt = 1; wt <= 8; ++wt) {
       m24_orbit_census cen;
       int k;
-      if (!m24_orbits_of_weight(wt, &cen)) {
+      if (m24_orbits_of_weight(wt, &ws, &cen) != CANOR_OK) {
         printf("  %6d   census refused\n", wt);
         continue;
       }

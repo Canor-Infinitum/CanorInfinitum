@@ -28,7 +28,9 @@ endif()
 file(GLOB CANOR_CORE_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/canor_*.c)
 
 add_library(canor_core STATIC ${CANOR_CORE_SOURCES})
-target_include_directories(canor_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(canor_core PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_options(canor_core PRIVATE ${CANOR_WARNINGS})
 
 # The timing library's property type is fixed at compile time, so the interval
@@ -44,7 +46,7 @@ target_compile_options(canor_gen PRIVATE ${CANOR_WARNINGS})
 target_link_libraries(canor_gen PRIVATE canor_core)
 
 enable_testing()
-foreach(t swar timing soul enum elite big containers)
+foreach(t swar timing soul enum elite big containers core_modules)
   add_executable(canor_test_${t} tests/canor_test_${t}.c)
   target_compile_options(canor_test_${t} PRIVATE ${CANOR_WARNINGS})
   target_link_libraries(canor_test_${t} PRIVATE canor_core)

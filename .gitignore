@@ -57,10 +57,11 @@ dkms.conf
 # CMake build trees and generated .fwh/.fwb (AGENTS.md: no generated artifacts)
 build/
 build-*/
-# Simplex enumerations exceed the host's file limit. Regenerate with emit_fwh.
+# Generated simplexes and the inferred name map. Regenerate locally.
 CanorDatabasis/flow.fwh
 CanorDatabasis/metaflow.fwh
 CanorDatabasis/action.fwh
+CanorDatabasis/dim_lexicon.fwh
 **/__pycache__/
 
 # Agent tool backups, worktrees, and packaged skill archives

@@ -1,14 +1,16 @@
-﻿# CanorLingua: Project A (Quantum-Linguistic NLP)
+# CanorLingua: Project A (Quantum-Linguistic NLP)
 
-Project A: All Quantum-Linguistic: Natural Language Processing. Flow traversal, Soul symbols, tokenization, and language AST parsing according to atoms.ebnf.
+Project A delivers natural language processing for the quantum-linguistic architecture. It manages Flow traversals, Soul state symbol generation, lexical tokenization, and Abstract Syntax Tree (AST) parsing in compliance with `atoms.ebnf`.
 
 ## Role in Canor Architecture
-- **Layer**: Defined in \Canor_Working-Draft_v1.pdf\
-- **Language / Convention**: C11 with integer-only arithmetic, \canor_*\ naming.
+
+- **Specification Authority:** Defined in `Canor_Working-Draft_v1.pdf` and this repository's Markdown specifications ([SCHEMA.md](../../SCHEMA.md)).
+- **Implementation Standards:** C11 with integer-only arithmetic, fixed-width types, and canonical `canor_*` identifier naming.
 
 ## Cross References
-- [Root README](../../README.md)
-- [Local AGENTS Rules](AGENTS.md)
-- [Local Context & Mappings](CONTEXT.md)
-- [Global Schema](../../SCHEMA.md)
-- [Global Architecture](../../DESIGN.md)
+
+- [Root Overview](../../README.md)
+- [Local Agent Guidelines](AGENTS.md)
+- [Subsystem Context & Mappings](CONTEXT.md)
+- [Type Hierarchy & Encodings](../../SCHEMA.md)
+- [System Architecture](../../DESIGN.md)

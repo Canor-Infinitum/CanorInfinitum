@@ -1,22 +1,27 @@
 # Copilot Instructions
 
-> Mirrored from root `INSTRUCTIONS.md`. Copilot reads `.github/copilot-instructions.md` automatically.
+> Mirrored to `.github/copilot-instructions.md`, which GitHub Copilot reads automatically. Always edit this file directly, then re-sync to the `.github/` mirror (see [WORKFLOW.md](WORKFLOW.md)).
 
-This repository is pure C11 and integer-only, implementing the Canor™ suite. All modules use the `canor_*` prefix.
+This repository contains a pure C11, integer-only implementation of the Canor™ architecture. All modules strictly adhere to the canonical `canor_*` naming convention.
 
-## Always
-- Use `int32_t`/`int64_t`/`uint64_t`, exact integers, and closed `LO/HI` integer intervals. Express ratios as fixed-point over `CANOR_ONE` (1000).
-- Return `canor_status`. Return `CANOR_ERR_ARGS` on NULL. Return explicit diagnostics for undefined cases.
-- Check capacity before writing: `if (n >= CANOR_X_MAX) return CANOR_ERR_FULL;`
-- Name things `canor_<module>_<verb>()`, `canor_<name>_t`, and `CANOR_*`.
-- Add a test case for each new public function.
+## Mandatory Implementation Guidelines
 
-## Never
-- `float`, `double`, `<math.h>`, `malloc`/`free` in core code.
-- Non-standard or non-canor prefixes in new code.
-- Mutating CanorDB during assembly.
-- Reordering FlowValue (`NegZero=0, NegOne=1, PosZero=2, PosOne=3`) or hard-coding the sedenion table.
-- Suggesting edits under `.old/`.
+- **Exact Arithmetic:** Use fixed-width integer types (`int32_t`, `int64_t`, `uint64_t`), exact integer values, and closed `[LO, HI]` integer intervals. Express ratios and fractional scores as fixed-point integers over `CANOR_ONE` (`1000`).
+- **Unified Diagnostics:** Return unified status codes (`canor_status`). Check for NULL pointers and return `CANOR_ERR_ARGS`. Emit explicit diagnostics for undefined or unhandled cases rather than silent fallbacks.
+- **Capacity Bounds:** Verify container boundaries before inserting elements: `if (n >= CANOR_X_MAX) return CANOR_ERR_FULL;`.
+- **Standardized Naming:** Name public functions as `canor_<module>_<verb>()`, types as `canor_<name>_t`, and preprocessor constants as `CANOR_*`.
+- **Automated Testing:** Provide automated unit tests for every newly introduced public function.
 
-## Context
-Glossary: [CONTEXT.md](../CONTEXT.md). Types: [SCHEMA.md](../SCHEMA.md). Full rules: [AGENTS.md](../AGENTS.md).
+## Prohibited Patterns
+
+- Do not use floating-point types (`float`, `double`), the standard math library (`<math.h>`), or dynamic memory allocation (`malloc`, `free`) in the core library.
+- Do not introduce identifiers with non-standard or non-canor prefixes into the C codebase.
+- Do not execute database mutations or side-effects during assembly or compilation.
+- Do not reorder spec-pinned constants (such as FlowValue bit encodings) or hardcode Cayley–Dickson sedenion tables.
+- Do not propose modifications to historical reference files under `.old/`.
+
+## Context References
+
+- Architectural Glossary: [CONTEXT.md](CONTEXT.md)
+- Type Specifications & Encodings: [SCHEMA.md](SCHEMA.md)
+- Complete Engineering Invariants: [AGENTS.md](AGENTS.md)

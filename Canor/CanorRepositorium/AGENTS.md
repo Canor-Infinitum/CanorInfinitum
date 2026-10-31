@@ -1,15 +1,17 @@
-﻿# AGENTS.md: CanorRepositorium: Project B (Storage, Learning & Runtime)
+# AGENTS.md: CanorRepositorium: Project B (Storage, Learning & Runtime)
 
-Inherits **all** non-negotiable rules from [root AGENTS.md](../../AGENTS.md). These local rules specialize and reinforce the global constraints:
+Inherits **all** non-negotiable rules from the [root AGENTS.md](../../AGENTS.md). These local rules specialize and reinforce the global constraints:
 
 ## Local Invariants & Rules
-- **Role**: Project B: All of CanorInstinctivus-Storage, -Learning, and -Runtime. FlowStore (hash id -> RGB content string), word/flow indexing, and hypervector dictionary storage.
-- **Local Rules**: Every insert must verify capacity and return CANOR_ERR_FULL if exhausted. Lookups return CANOR_ERR_NOT_FOUND, never null dereference.
-- **Naming**: Strictly \canor_*\. Legacy prefixes (\fc_*\, \vi_*\) are forbidden in all new/migrated code.
-- **Arithmetic**: Pure integer / interval arithmetic. Zero floats or doubles.
-- **Status Codes**: Return unified \canor_status\ with explicit diagnostics for undefined cases.
+
+- **Role:** Project B implements the storage, machine learning, and runtime execution infrastructure for CanorInstinctivus. This includes FlowStore (mapping cryptographic hash identifiers to RGB content strings), lexicographical word/flow indexing, and hypervector dictionary storage.
+- **Local Rules:** Every insertion must verify capacity bounds and return `CANOR_ERR_FULL` if capacity is exhausted. Lookups must return `CANOR_ERR_NOT_FOUND` on missing keys rather than null pointer dereferences.
+- **Naming Standards:** Strictly `canor_*`. Legacy prefixes (`fc_*`, `vi_*`) are forbidden in all new and migrated code.
+- **Arithmetic:** Pure integer and interval arithmetic. Floating-point types (`float`, `double`) are prohibited.
+- **Status Codes:** Return unified `canor_status` with explicit diagnostics for undefined cases.
 
 ## Relative Links
+
 - [Root AGENTS.md](../../AGENTS.md)
 - [Root README.md](../../README.md)
 - [Root SCHEMA.md](../../SCHEMA.md)

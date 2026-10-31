@@ -1,38 +1,49 @@
-# AGENTS.md
+# AGENTS.md: Universal Coding Standards
 
-Instructions for any AI coding agent working in this repository. Subfolders have their own `AGENTS.md`. Those add local rules and never relax these.
+Instructions for any AI coding agent working within this repository. Subfolders contain localized `AGENTS.md` files that supplement these guidelines with directory-specific context, but never relax these core standards.
 
-## Non-negotiable invariants
-1. **Integer only.** Use no `float`, `double`, or `<math.h>`. The draft mandates "Integer Programming with Interval Arithmetic … throughout all of Canor™". Use exact integers, closed `LO/HI` integer intervals, and fixed-point scores over `CANOR_ONE` (1000). Results must be bit-identical across hosts.
-2. **Fixed capacities.** Every container has an `#ifndef`-overridable `CANOR_*_MAX`. The caller places all values. Use no hidden `malloc` in the core. Every insert checks capacity and returns `CANOR_ERR_FULL`.
-3. **Diagnose, never prune.** Return `canor_status` codes. Undefined cases produce **explicit diagnostics**, never silently dropped branches. Use no `abort()`/`exit()`.
-4. **Assembly is side-effect-free.** Assembly/Elite never mutates CanorDB or external state. Effects happen only at declared runtime, when the `.fwp` profile and `.fws` contracts authorize them.
-5. **Flow semantics.** Flow values are immutable and ordered. Duplicate atoms count separately. An omitted ring index means 0. An `Order` is a permutation of `Index(n)`. Count streams emit **n + 1** vectors. Residues are canonical (`0 ≤ r < N`).
-6. **No magic numbers.** Name constants and flag them, so the assembler/compiler can track them.
-7. **Spec-pinned encodings are frozen** (see [SCHEMA.md](SCHEMA.md)): FlowValue `NegZero=0, NegOne=1, PosZero=2, PosOne=3`, IMAG = 5 trifectas (16, sedenions), and the MetaFlow labels `R,G,B,A`.
-8. **Reproducibility.** Record profile and settings versions and provenance with every artifact.
-9. **License:** AGPL-3.0-or-later.
+## Non-Negotiable Invariants
 
-## Naming: everything is `canor_*`
-- Headers `include/canor_<module>.h`, sources `src/canor_<module>.c`, functions `canor_<module>_<verb>()`, types `canor_<name>_t`, macros `CANOR_*`.
-- Only canonical `canor_*` identifiers may appear in codebase files. See [MEMORY.md](MEMORY.md#canonical-module-mapping-approved).
-- C11, `-Wall -Wextra -Werror -pedantic`, `<stdint.h>` types, `extern "C"` guards.
-- Block comments explain *why*, citing the draft by section (e.g. `Canor WD v1 §4 Soul`).
+1. **Pure Integer Arithmetic:** Do not use `float`, `double`, or the standard math library (`<math.h>`). The specification mandates integer arithmetic with closed interval bounds throughout all components. Calculations must use exact integers, closed `[LO, HI]` integer intervals, and fixed-point representations over `CANOR_ONE` (`1000`). Results must be bit-identical across all host and target architectures.
+2. **Static Capacity Management:** Every container must declare a compile-time capacity limit overridable via `#ifndef CANOR_*_MAX`. The caller supplies all memory storage. Dynamic heap allocation (`malloc`, `free`) is strictly prohibited in the core library. Every insertion must verify available capacity and return `CANOR_ERR_FULL` upon overflow.
+3. **Explicit Diagnostics:** Functions must return unified status codes (`canor_status`). Undefined or invalid inputs must emit explicit diagnostics rather than silent fallbacks or process terminations (`abort()`, `exit()`).
+4. **Side-Effect-Free Assembly:** Assembly and compilation phases (Elite, Maneuver verification) must never mutate CanorDB or external state. State mutations occur exclusively at runtime when authorized by `.fwp` profile and `.fws` settings contracts.
+5. **Formal Flow Semantics:** Flow values are immutable and ordered. Duplicate atoms represent distinct sequential positions and are never folded. An omitted ring index defaults to `0`. An `Order` is an exact permutation bijection over `Index(n)`. Count-stream traversals emit exactly $n + 1$ vectors. Modulations yield canonical non-negative residues ($0 \le r < N$).
+6. **No Unnamed Constants:** All numerical constants must be explicitly named so the assembler and compiler can track their semantics.
+7. **Frozen Encodings:** Pinned encodings are specification invariants (see [SCHEMA.md](SCHEMA.md)): FlowValue (`NegZero=0, NegOne=1, PosZero=2, PosOne=3`), IMAG 5-trifecta sedenions (16 basis elements), and MetaFlow channel labels (`R, G, B, A`).
+8. **Reproducibility & Provenance:** Record profile versions, settings versions, author attribution, and date provenance in every source header (`.fwh`).
+9. **Licensing:** Licensed under the GNU AGPL v3.0 or later.
 
-## Commands
+## Identifier Naming Conventions
+
+- All identifiers within the codebase follow the canonical `canor_*` naming convention:
+  - Header files: `include/canor_<module>.h`
+  - Source files: `src/canor_<module>.c`
+  - Public functions: `canor_<module>_<verb>()`
+  - Type definitions: `canor_<name>_t`
+  - Preprocessor macros and constants: `CANOR_*`
+- Code must adhere to C11 standards and compile cleanly under `-Wall -Wextra -Werror -pedantic`. Use fixed-width types from `<stdint.h>`, `<stddef.h>`, `<stdbool.h>`, and provide `extern "C"` inclusion guards.
+- Block comments must explain implementation rationale, citing relevant specification sections (e.g. `Canor Working Draft v1 §4 Soul`).
+
+## Canonical Verification Commands
+
 ```sh
 configure: cmake -S source -B build -G Ninja -DCMAKE_C_COMPILER=gcc
-build:   cmake --build build
-test:    ctest --test-dir build --output-on-failure
-fwh/fwb: build/canor_gen --out build/fw          # <out>/<language>/<language>.fwh|.fwb, digests profile-defined
-zephyr:  west build -b <board> app
-lint:    test "$(rg --files source/include source/src | wc -l)" -gt 0 && rg -n "float|double|math\.h|malloc" source/include source/src   # must be empty; scope is the library (examples/ tracked separately)
+build:     cmake --build build
+test:      ctest --test-dir build --output-on-failure
+generate:  build/canor_gen --out build/fw
+zephyr:    west build -b <board> app
+lint:      sh source/tools/canor_lint.sh
 ```
 
-## Do not
-- Edit `D:\Workspace\.old\` (read-only reference).
-- Add dependencies to the C core. Complementary-language bindings belong under `CanorLinguae/`.
-- Commit generated binaries, `.fwo`, WASM, or WebM.
+The lint passes (exit 0) only when no line matches. It flags heap calls (`malloc`, `calloc`, `realloc`, `free`), floating-point types, `sqrt`, and `<math.h>`. It blanks comments and string literals first (keeping line numbers), so prose may discuss them, while code after a comment or a line starting with `*` is still checked. It exits 2 if it finds no library files. Its scope is the library: `examples/` is tracked separately.
 
-## See also
+## Prohibited Actions
+
+- Do not edit reference files under `.old/` (maintained strictly as read-only historical context).
+- Do not introduce external dependencies into the pure-C core. Complementary-language wrappers belong under `CanorLinguae/`.
+- Do not commit generated binary artifacts, `.fwo` files, WASM modules, or WebM video streams to version control.
+
+## Reference Documents
+
 [CONTEXT.md](CONTEXT.md) · [SCHEMA.md](SCHEMA.md) · [WORKFLOW.md](WORKFLOW.md) · [MEMORY.md](MEMORY.md)

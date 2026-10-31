@@ -1,14 +1,16 @@
-﻿# CanorInfinitum: Project C (Hardware, Software & Technology)
+# CanorInfinitum: Project C (Hardware, Software & Technology)
 
-Project C: All of CanorInstinctivus-Hardware, -Software, and -Technology. Exact unbounded arithmetic, big integers, factoradic/Lehmer, primes, surreals, Golay coding, and Zephyr / bare-metal integration.
+Project C encompasses hardware integration, foundational software libraries, and embedded technology integration for CanorInstinctivus. It provides arbitrary-precision integer arithmetic, factoradic/Lehmer indexing, prime factor algorithms, surreal numbers, Golay error-correction coding, and Zephyr RTOS bare-metal drivers.
 
 ## Role in Canor Architecture
-- **Layer**: Defined in \Canor_Working-Draft_v1.pdf\
-- **Language / Convention**: C11 with integer-only arithmetic, \canor_*\ naming.
+
+- **Specification Authority:** Defined in `Canor_Working-Draft_v1.pdf` and this repository's Markdown specifications ([SCHEMA.md](../../SCHEMA.md)).
+- **Implementation Standards:** C11 with integer-only arithmetic, fixed-width types, and canonical `canor_*` identifier naming.
 
 ## Cross References
-- [Root README](../../README.md)
-- [Local AGENTS Rules](AGENTS.md)
-- [Local Context & Mappings](CONTEXT.md)
-- [Global Schema](../../SCHEMA.md)
-- [Global Architecture](../../DESIGN.md)
+
+- [Root Overview](../../README.md)
+- [Local Agent Guidelines](AGENTS.md)
+- [Subsystem Context & Mappings](CONTEXT.md)
+- [Type Hierarchy & Encodings](../../SCHEMA.md)
+- [System Architecture](../../DESIGN.md)

@@ -27,9 +27,9 @@ Review {files} against AGENTS.md invariants 1–9. List violations with file:lin
 Do not change code.
 ```
 
-## Add a complementary-language binding (Carmen Interlingua)
+## Add a complementary-language binding (Follower / Carmen Interlingua)
 ```
-Expose canor_{functions} to {FPC|SWI-Prolog|Rust|WASM} in CanorLinguae/carmen/{lang}/.
+Expose canor_{functions} to {FPC|SWI-Prolog|Rust|WASM} in CanorLinguae/follower/{lang}/.
 C ABI only. Map canor_status to the target's error idiom. Declare the block in the .fwp/.fws profile.
 ```
 

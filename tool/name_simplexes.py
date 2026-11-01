@@ -191,6 +191,38 @@ def name_line(line: str, lexeme: Lexeme, inferer: DimInferer | None = None, prof
     return "#%s::%s:%s;\n" % (lexeme.name, key, value)
 
 
+def load_original_names(path: Path) -> list[str]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return list(data.keys())
+
+
+def apply_original_names(src: Path, names: list[str]) -> int:
+    """Rewrite src in place. Each line takes the next original.json word, wrapping."""
+    tmp = src.with_suffix(src.suffix + ".tmp")
+    count = 0
+    width = len(names)
+    with src.open("r", encoding="utf-8", newline="\n") as inp, tmp.open("wb", buffering=8 * 1024 * 1024) as out:
+        batch = []
+        for line in inp:
+            if not line.strip():
+                continue
+            text = line.rstrip("\n")
+            key, sep, rest = text.partition(" : ")
+            if not sep:
+                batch.append(line.encode("utf-8"))
+            else:
+                value = atom_value(key, rest)
+                batch.append(("#%s::%s:%s;\n" % (names[count % width], key, value)).encode("utf-8"))
+            count += 1
+            if len(batch) >= 100000:
+                out.write(b"".join(batch))
+                batch.clear()
+        if batch:
+            out.write(b"".join(batch))
+    tmp.replace(src)
+    return count
+
+
 def name_file(src: Path, dst: Path, lexicon: list[Lexeme], limit: int, inferer: DimInferer | None, profile: dict | None) -> int:
     count = 0
     with src.open("r", encoding="ascii", newline="\n") as inp, dst.open("wb", buffering=8 * 1024 * 1024) as out:
@@ -220,7 +252,16 @@ def main() -> None:
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--limit", type=int, default=5)
     parser.add_argument("--map", type=Path, default=None)
+    parser.add_argument("--apply-original", action="store_true")
     args = parser.parse_args()
+    if args.apply_original:
+        names = load_original_names(args.original)
+        print("original %d" % len(names))
+        for kind in ("flow", "action", "metaflow"):
+            src = args.src / ("%s.fwh" % kind)
+            count = apply_original_names(src, names)
+            print("named %d %s" % (count, src))
+        return
     lexicon = load_lexicon(args.categories, args.original)
     inferer = DimInferer()
     print("lexicon %d" % len(lexicon))

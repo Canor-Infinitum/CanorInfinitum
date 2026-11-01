@@ -1,3 +1,0 @@
-@contract.default(effect=none, canordb=none, runtime=none);
-@contract.provenance{profile, settings, version, digest};
-@contract.override(grammar=locked, settings=open);

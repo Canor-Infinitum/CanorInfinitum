@@ -54,13 +54,9 @@ dkms.conf
 # debug information files
 *.dwo
 
-# CMake build trees and generated .fwh/.fwb (AGENTS.md: no generated artifacts)
+# CMake build trees
 build/
 build-*/
-# Generated simplex enumerations. They exceed the host file limit.
-CanorDatabasis/flow.fwh
-CanorDatabasis/metaflow.fwh
-CanorDatabasis/action.fwh
 **/__pycache__/
 
 # Agent tool backups, worktrees, and packaged skill archives

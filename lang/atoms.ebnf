@@ -1,0 +1,118 @@
+(* atoms.ebnf: canonical Canor atom grammar (Follow locale alias).
+   Source: Working Draft v1, Appendix A, with these changes:
+   - TENSOR_PROPERTY kept as WD v1: symmetric / antisymmetric / unknownsymmetric.
+   - OPERATOR set: + - × * ÷ / \ ** (Conceptual Design set; ** is power).
+   - "^" is script-only; power is "**" (POWER_OPERATOR).
+   - = < > are EQUATION_OPERATOR only; strict < and > allowed.
+   - "_" is not a name start (NAME_START = UNICODE_LETTER).
+   OPEN: "_" still opens ROOT_PATH_MARKER; a path beginning "_" is a root marker.
+   A sigil atom is:
+     sigil, header, optional invocation group,
+     optional ( "::", template-header or headerless group ),
+     optional ( ":", atom body ), ";".
+   The colon and body may be absent. A function reference then ends at ";".
+     %fn_1_1::(...);    is a headerless template, not a call.
+     %fn_2::One(...);   is a template header plus a group, not a call.
+   A call is sigil, header, invocation, and has no "::" and no colon.
+   An invocation is a group on the header, before "::" or ":".
+   A template is one header, several headers joined by "::", or a headerless group.
+     &Name.main::Master::Strategy is header Name.main and template Master::Strategy.
+   The group after a template header may be the template payload, as in ::diff:( ... );,
+   or parameters before a colon, as in ::diff(&param1, %param2):( ... );.
+   Inside a group, entries may be joined by an operator, so a chain is stored unevaluated:
+     %fn_1_1::(...); + %fn_1_2::(...);
+   A group entry is also "header = value" or a positional parameter.
+   A positional parameter is an optional root-path sigil plus a header.
+   Without a template, "@" marks a Flow and "$" marks a MetaFlow.
+   With a template header Flow or MetaFlow, either "@" or "$" may open the atom.
+   A template header may contain "." and digits, so Kind.order.index.count is one header word.
+   No parameter name is a keyword. A selector occurs only in a path that begins with a sigil.
+   Eight scripts stay on a typed atom: N' N. N^ N_ symbol _N ^N .N 'N. *)
+ATOM_FILE = { SIGIL_ATOM } ;
+SIGIL_ATOM = ROOT_PATH_MARKER, HEADER, INVOCATION?, ( "::", TEMPLATE_REF )?, ( ":", ATOM_BODY )?, ";" ;
+CALL = ROOT_PATH_MARKER, HEADER, INVOCATION ;
+INVOCATION = GROUP ;
+TEMPLATE_REF = HEADER, { "::", HEADER }, GROUP? | GROUP ;
+GROUP = "{", GROUP_ENTRIES?, "}"
+      | "[", GROUP_ENTRIES?, "]"
+      | "(", GROUP_ENTRIES?, ")"
+      | "<", GROUP_ENTRIES?, ">" ;
+GROUP_ENTRIES = GROUP_ENTRY, { GROUP_JOIN, GROUP_ENTRY }, ( "," )? ;
+GROUP_JOIN = "," | OPERATOR ;
+GROUP_ENTRY = NAMED_PARAMETER | POSITIONAL | ATOM_MEMBER ;
+POSITIONAL = ROOT_PATH_MARKER?, HEADER ;
+NAMED_PARAMETER = HEADER, "=", ATOM_VALUE ;
+ATOM_BODY = GROUP | CALL | ATOM_SINGLETON ;
+ATOM_MEMBER = SIGIL_ATOM | CALL | ATOM_SINGLETON ;
+ATOM_SINGLETON = TYPED_ATOM | QUOTED_STRING | NUMBER ;
+ATOM_PATH = ROOT_PATH_MARKER, PATH_SEGMENT, { SELECTOR, PATH_SEGMENT } ;
+PATH_SEGMENT = TYPED_ATOM ;
+ROOT_PATH_MARKER = "&" | "%" | "$" | "#" | "@" | "?" | "!" | "^" | "~" | "/" | "\\" | "_" ;
+SELECTOR = "." | "'" ;
+TYPED_ATOM = LTR_PRIME?, LTR_DOT?, LTR_CARET?, LTR_UNDER?, SYMBOL, RTL_UNDER?, RTL_CARET?, RTL_DOT?, RTL_PRIME?, TENSOR_BRAKET? ;
+LTR_PRIME = SCRIPT_INDEX, "'" ;
+LTR_DOT = SCRIPT_INDEX, "." ;
+LTR_CARET = SCRIPT_INDEX, "^" ;
+LTR_UNDER = SCRIPT_INDEX, "_" ;
+RTL_UNDER = "_", SCRIPT_INDEX ;
+RTL_CARET = "^", SCRIPT_INDEX ;
+RTL_DOT = ".", SCRIPT_INDEX ;
+RTL_PRIME = "'", SCRIPT_INDEX ;
+SCRIPT_INDEX = NUMBER | "{", SYMBOLIC_ATOM, "}" ;
+SYMBOL = NAME | SOUL_SYMBOL_REF | FONT_SCRIPT_GLYPH_REF | TEX_COMMAND ;
+NAME = NAME_START, { NAME_CONTINUE } ;
+NAME_START = UNICODE_LETTER ;
+NAME_CONTINUE = UNICODE_LETTER | DIGIT | "_" | "-" ;
+SOUL_SYMBOL_REF = REGISTERED_SOUL_SYMBOL_TOKEN ;
+FONT_SCRIPT_GLYPH_REF = REGISTERED_FONT_GLYPH_TOKEN ;
+TEX_COMMAND = "\\", NAME ;
+HEADER = HEADER_BASE, { " ", HEADER_EXTENSION } ;
+HEADER_BASE = HEADER_BASE_CHAR, { HEADER_BASE_CHAR } ;
+HEADER_EXTENSION = HEADER_EXTENSION_CHAR, { HEADER_EXTENSION_CHAR } ;
+HEADER_BASE_CHAR = ASCII_LETTER | DIGIT | "_" | "." ;
+HEADER_EXTENSION_CHAR = HEADER_BASE_CHAR | "-" ;
+PARAMETER_GROUP = MATHEMATICAL_GROUP ;
+MATHEMATICAL_GROUP = GROUP | TENSOR_BRAKET ;
+TENSOR_BRAKET = "<", TENSOR_OBJECT, "|", TENSOR_OBJECT, ">" ;
+TENSOR_OBJECT = TENSOR_VALUE, ("(", TENSOR_PROPERTY_LIST, ")")? ;
+TENSOR_PROPERTY_LIST = TENSOR_PROPERTY, { ",", TENSOR_PROPERTY } ;
+TENSOR_PROPERTY = "symmetric", ":", TENSOR_VALUE | "antisymmetric", ":", TENSOR_VALUE | "unknownsymmetric", ":", TENSOR_VALUE ;
+TENSOR_VALUE = ATOM_PATH | QUOTED_STRING | NUMBER | SYMBOLIC_ATOM ;
+ATOM_VALUE = SIGIL_ATOM | CALL | ATOM_BODY | QUOTED_STRING | NUMBER | KEY_VALUE_PAIR | SYMBOLIC_ATOM ;
+KEY_VALUE_PAIR = KEY, "=", ATOM_VALUE ;
+KEY = NAME | QUOTED_STRING ;
+SYMBOLIC_ATOM = DEFINING_EXPRESSION | DEFINING_EQUATION ;
+DEFINING_EXPRESSION = EXPRESSION ;
+DEFINING_EQUATION = EXPRESSION, EQUATION_OPERATOR, EXPRESSION ;
+EXPRESSION = EXPRESSION_TOKEN, { EXPRESSION_TOKEN } ;
+EXPRESSION_TOKEN = SYMBOL | NUMBER | OPERATOR | MATHEMATICAL_GROUP | QUOTED_STRING ;
+QUOTED_STRING = "\"", { STRING_CHARACTER | ESCAPE_SEQUENCE }, "\"" ;
+(* Decimal, binary (0b), or hexadecimal (0x). This is the only number form. *)
+NUMBER = "0b", BIN_DIGIT, { BIN_DIGIT } | "0x", HEX_DIGIT, { HEX_DIGIT } | DIGIT, { DIGIT } ;
+ASCII_LETTER = /[A-Za-z]/ ;
+UNICODE_LETTER = /\p{L}/ ;
+DIGIT = /[0-9]/ ;
+BIN_DIGIT = "0" | "1" ;
+HEX_DIGIT = /[0-9A-Fa-f]/ ;
+REGISTERED_SOUL_SYMBOL_TOKEN = NAME ;
+REGISTERED_FONT_GLYPH_TOKEN = NAME ;
+(* Strict < and > are equation operators. TENSOR_BRAKET keeps its own < | > delimiters. *)
+EQUATION_OPERATOR = "=" | ":=" | "<" | "<=" | ">" | ">=" ;
+(* Equality and comparison are EQUATION_OPERATOR only (see below). *)
+OPERATOR = "+" | "-" | "×" | "*" | "÷" | "/" | "\\" | POWER_OPERATOR ;
+POWER_OPERATOR = "**" ;
+(* LEXICAL RULES:
+   1. Longest match: "**" is one POWER_OPERATOR token, never two "*" tokens.
+   2. "^" is a script token, never an operator, so x^2 is a script and x**2 is a power.
+   3. Whitespace between tokens is ignored, including newlines inside a body.
+      Whitespace inside QUOTED_STRING is significant.
+   4. "." and "'" are scripts when attached to a SCRIPT_INDEX.
+      They are selectors only inside ATOM_PATH, which begins with a sigil.
+   5. A comma between body entries is optional and ignored, including a trailing comma.
+      A nested sigil atom still ends with its own ";".
+   6. "{}", "[]", "()", and "<>" are one group form: an invocation, a template payload,
+      a headerless template, or an atom body.
+      A group entry with "=" is a named parameter. A sigil on a positional parameter is that slot's marker.
+      "<" "|" ">" with two tensor objects remains TENSOR_BRAKET. *)
+ESCAPE_SEQUENCE = "\\", ("\\" | "\"" | "n" | "r" | "t") ;
+STRING_CHARACTER = /[^"\\\r\n]/ ;

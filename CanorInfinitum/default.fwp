@@ -1,7 +1,0 @@
-@project(name="CanorInfinitum", version="0.1.0", license="AGPL-3.0-or-later", locale=en);
-@provenance(source="Canor_Working-Draft_v1", author="Canor Aether Infinitum", date="2026-10-20");
-@grammar(path="../CanorLinguae/grammar/atoms.ebnf", productions=60, override=off);
-@settings{"settings/canor_lexis.fws", "settings/canor_names.fws", "settings/canor_sigils.fws", "settings/canor_groups.fws", "settings/canor_headers.fws", "settings/canor_templates.fws", "settings/canor_expressions.fws", "settings/canor_contracts.fws", "settings/canor_diagnostics.fws"};
-@digest(algorithm=unset, covers={grammar, settings});
-@complementary:none;
-@extends(by="local.fwp");

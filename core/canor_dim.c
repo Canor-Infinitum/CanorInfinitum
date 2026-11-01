@@ -127,19 +127,56 @@ canor_dim canor_dim_rescale(canor_dim a, int8_t by) {
 int canor_dim_format(canor_dim d, char *out, int cap) {
   char buf[128];
   int n = 0;
-  if (d.poison) return snprintf(out, (size_t)cap, "POISON");
+  if (!out || cap < 1) return -1;
+  if (d.poison) {
+    int wrote = snprintf(out, (size_t)cap, "POISON");
+    return (wrote < 0 || wrote >= cap) ? -1 : wrote;
+  }
   buf[0] = 0;
-  if (d.log == 1) n += snprintf(buf + n, sizeof buf - (size_t)n, "log2 ");
-  else if (d.log == 2) n += snprintf(buf + n, sizeof buf - (size_t)n, "log2.log2 ");
-  else if (d.log != 0) n += snprintf(buf + n, sizeof buf - (size_t)n, "log^%d ", d.log);
-  if (d.time)  n += snprintf(buf + n, sizeof buf - (size_t)n, "s^%d ", d.time);
-  if (d.length) n += snprintf(buf + n, sizeof buf - (size_t)n, "m^%d ", d.length);
-  if (d.count) n += snprintf(buf + n, sizeof buf - (size_t)n, "step^%d ", d.count);
-  if (d.bit)   n += snprintf(buf + n, sizeof buf - (size_t)n, "bit^%d ", d.bit);
-  if (d.scale == -3) n += snprintf(buf + n, sizeof buf - (size_t)n, "[milli]");
-  else if (d.scale) n += snprintf(buf + n, sizeof buf - (size_t)n, "[1e%d]", d.scale);
-  if (!buf[0]) snprintf(buf, sizeof buf, "pure");
-  return snprintf(out, (size_t)cap, "%s", buf);
+  {
+    const char *parts[8];
+    char extra[6][24];
+    int np = 0, ei = 0;
+    if (d.log == 1) parts[np++] = "log2 ";
+    else if (d.log == 2) parts[np++] = "log2.log2 ";
+    else if (d.log != 0) {
+      snprintf(extra[ei], sizeof extra[ei], "log^%d ", d.log);
+      parts[np++] = extra[ei++];
+    }
+    if (d.time) {
+      snprintf(extra[ei], sizeof extra[ei], "s^%d ", d.time);
+      parts[np++] = extra[ei++];
+    }
+    if (d.length) {
+      snprintf(extra[ei], sizeof extra[ei], "m^%d ", d.length);
+      parts[np++] = extra[ei++];
+    }
+    if (d.count) {
+      snprintf(extra[ei], sizeof extra[ei], "step^%d ", d.count);
+      parts[np++] = extra[ei++];
+    }
+    if (d.bit) {
+      snprintf(extra[ei], sizeof extra[ei], "bit^%d ", d.bit);
+      parts[np++] = extra[ei++];
+    }
+    if (d.scale == -3) parts[np++] = "[milli]";
+    else if (d.scale) {
+      snprintf(extra[ei], sizeof extra[ei], "[1e%d]", d.scale);
+      parts[np++] = extra[ei++];
+    }
+    for (int i = 0; i < np; i++) {
+      size_t len = strlen(parts[i]);
+      if (n + (int)len >= (int)sizeof buf) return -1;
+      memcpy(buf + n, parts[i], len);
+      n += (int)len;
+    }
+  }
+  buf[n] = 0;
+  if (!buf[0]) memcpy(buf, "pure", 5);
+  {
+    int wrote = snprintf(out, (size_t)cap, "%s", buf);
+    return (wrote < 0 || wrote >= cap) ? -1 : wrote;
+  }
 }
 
 canor_quantity canor_q(int64_t v, canor_dim d) {

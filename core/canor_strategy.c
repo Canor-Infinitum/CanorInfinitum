@@ -232,14 +232,28 @@ bool canor_family_parse(canor_family *f, const char *name, const char *text) {
 int canor_family_format(const canor_family *f, char *out, int cap) {
   static const char *const opn[3] = { "sin", "cos", "tan" };
   int n = 0;
+  if (!f || !out || cap < 1) return -1;
+  out[0] = 0;
   for (int t = 0; t < f->nterms; ++t) {
     const canor_product *p = &f->term[t];
-    n += snprintf(out + n, (size_t)(cap - n), "%s%c", t ? " " : "",
-                  p->sign < 0 ? '-' : '+');
+    int wrote;
+    if (n >= cap) return -1;
+    wrote = snprintf(out + n, (size_t)(cap - n), "%s%c", t ? " " : "",
+                     p->sign < 0 ? '-' : '+');
+    if (wrote < 0 || wrote >= cap - n) return -1;
+    n += wrote;
     for (int k = 0; k < p->nf; ++k) {
-      if (k) n += snprintf(out + n, (size_t)(cap - n), "%c",
-                           p->f[k].join == CANOR_JOIN_MUL ? '*' : '/');
-      n += snprintf(out + n, (size_t)(cap - n), "%s%d", opn[p->f[k].op], p->f[k].arg + 1);
+      if (k) {
+        if (n >= cap) return -1;
+        wrote = snprintf(out + n, (size_t)(cap - n), "%c",
+                         p->f[k].join == CANOR_JOIN_MUL ? '*' : '/');
+        if (wrote < 0 || wrote >= cap - n) return -1;
+        n += wrote;
+      }
+      if (n >= cap) return -1;
+      wrote = snprintf(out + n, (size_t)(cap - n), "%s%d", opn[p->f[k].op], p->f[k].arg + 1);
+      if (wrote < 0 || wrote >= cap - n) return -1;
+      n += wrote;
     }
   }
   return n;
